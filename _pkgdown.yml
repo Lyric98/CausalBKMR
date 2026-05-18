@@ -37,23 +37,21 @@ navbar:
       href: reference/index.html
     - icon: fa-github fa-lg
       text: GitHub
-      href: https://github.com/Lyric98/causalBKMR
+      href: https://github.com/Lyric98/CausalBKMR
 
 reference:
   - title: "Data Preparation"
-    desc: "Prepare and validate your data for g-BKMR analysis"
+    desc: "Convert user matrices to the current g-BKMR wide format"
     contents:
       - prepare_gbkmr_data
-      - validate_user_matrices
 
   - title: "Variable Detection"
-    desc: "Automatically detect variable structure"
+    desc: "Detect mixture and time-varying covariate columns"
     contents:
       - detect_variable_patterns
-      - print.gbkmr_detection
 
   - title: "Analysis"
-    desc: "Run g-BKMR analysis"
+    desc: "Run the current g-BKMR analysis pipeline"
     contents:
       - gbkmr_run
       - run_gbkmr_panel

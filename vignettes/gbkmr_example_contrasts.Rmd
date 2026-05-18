@@ -1,5 +1,5 @@
 ---
-title: "Example 1: Custom intervention contrasts"
+title: "Custom Intervention Contrasts"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{gbkmr_example_contrasts}
@@ -11,144 +11,142 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-The default g-BKMR contrast compares all mixture components at the
-**25th vs. 75th percentile**. This is convenient but not always the
-right scientific question. This article shows how to specify:
+The current `gbkmr_run()` interface supports custom intervention
+contrasts directly. You do not need to call any function from `R/old/`,
+and you usually do not need to call the lower-level `run_gbkmr_panel()`.
 
-- Different quantile contrasts (e.g., 10th vs. 90th)
-- Specific exposure values (e.g., regulatory thresholds)
-- What you **should not** do
+## Default Contrast
 
-For all examples we assume `prepared_data` is the output of
-`prepare_gbkmr_data()` with 2 mixture components and 3 visits.
-
-## The default
+By default, `gbkmr_run()` compares all mixture columns at the 25th
+percentile with all mixture columns at the 75th percentile:
 
 ```{r default}
-library(causalBKMR)
-results <- gbkmr_run(
-  data = prepared_data,
+fit_default <- gbkmr_run(
+  data = prepared,
   time_points = 3,
-  a_probs = c(0.25, 0.75)   # implicit default
+  a_probs = c(0.25, 0.75),
+  iter = 15000,
+  K = 1000
 )
 ```
 
-The Input Audit will print:
+This means:
 
-```
-[Causal contrast]
-  Low exposure (a):   all mixture components at 25th percentile
-  High exposure (a*): all mixture components at 75th percentile
-  Target estimand:    ACE = E[Y(a*)] - E[Y(a)]
-  IMPORTANT: Only mixture columns vary between a and a*.
-             Time-varying confounders are sampled via g-computation.
-             Baseline covariates are held at their mean.
+```text
+low scenario:  logM1_0, logM2_0, ..., logM2_2 at their 25th percentiles
+high scenario: logM1_0, logM2_0, ..., logM2_2 at their 75th percentiles
 ```
 
-## Option A — different quantile pair
+## Change Quantiles
 
-```{r wide}
-# 10th vs 90th percentile -- stronger contrast, wider CI
-results_wide <- gbkmr_run(
-  data = prepared_data,
+Use `a_probs` for a different global quantile shift:
+
+```{r quantiles}
+fit_10_90 <- gbkmr_run(
+  data = prepared,
   time_points = 3,
   a_probs = c(0.10, 0.90),
-  iter = 15000
+  iter = 15000,
+  K = 1000
 )
 ```
 
-## Option B — specific exposure values
+The two probabilities must be length two, with the low scenario first
+and the high scenario second.
 
-Suppose you want to compare "all metals at background level 1 μg/L" vs.
-"all metals at EPA action level 5 μg/L". Because `prepare_gbkmr_data()`
-log-transforms exposures by default, you must pass values on the
-*transformed* scale (`log(1) = 0`, `log(5) ≈ 1.609`):
+## Use Fixed Exposure Values
 
-```{r custom}
-# Get exposure column names (the 6 columns vary by visit)
-exposure_cols <- paste0("logM", rep(1:2, 3), "_", rep(0:2, each = 2))
-# c("logM1_0", "logM2_0", "logM1_1", "logM2_1", "logM1_2", "logM2_2")
+Use `a_vals` and `astar_vals` when the scientific question is about
+specific exposure levels. These vectors must be named with the mixture
+columns created by `prepare_gbkmr_data()`.
 
-a_background <- setNames(rep(log(1), 6), exposure_cols)
-a_action     <- setNames(rep(log(5), 6), exposure_cols)
+```{r fixed-values}
+exposure_names <- grep("^logM\\d+_\\d+$", names(prepared), value = TRUE)
 
-# For custom contrast, use run_gbkmr_panel() (gives full control)
-results_regulatory <- run_gbkmr_panel(
-  sim_popn = prepared_data,
-  T = 3, p = 2,
-  mediator_basenames = "waist",
-  common_covariates = c("sex", "waist_0"),
+# prepare_gbkmr_data(log_transform_mixtures = TRUE) stores log concentrations.
+a_background <- setNames(rep(log(1), length(exposure_names)), exposure_names)
+a_high <- setNames(rep(log(5), length(exposure_names)), exposure_names)
+
+fit_fixed <- gbkmr_run(
+  data = prepared,
+  time_points = 3,
   a_vals = a_background,
-  astar_vals = a_action,
-  iter = 15000, n = 500, K = 1000, n_knots = 50
+  astar_vals = a_high,
+  iter = 15000,
+  K = 1000
 )
 ```
 
-You can also mix scenarios: e.g., metal 1 at background but metal 2 at
-action level:
+If `log_transform_mixtures = FALSE`, pass values on the original scale.
+If it is `TRUE`, pass values on the log scale because the fitted data
+contain log-transformed mixture columns.
 
-```{r mixed}
-a_mixed_low  <- setNames(c(log(1), log(1), log(1), log(1), log(1), log(1)), exposure_cols)
-a_mixed_high <- setNames(c(log(1), log(5), log(1), log(5), log(1), log(5)), exposure_cols)
-#                          ^M1_0   ^M2_0   ^M1_1   ^M2_1   ^M1_2   ^M2_2
-# Only M2 increases between scenarios
+## Change One Component
+
+The names let you define component-specific and time-specific scenarios.
+This example increases only component 2 at every visit:
+
+```{r component-specific}
+a_component <- setNames(rep(log(1), length(exposure_names)), exposure_names)
+astar_component <- a_component
+astar_component[c("logM2_0", "logM2_1", "logM2_2")] <- log(5)
+
+fit_component <- gbkmr_run(
+  data = prepared,
+  time_points = 3,
+  a_vals = a_component,
+  astar_vals = astar_component,
+  iter = 15000,
+  K = 1000
+)
 ```
 
-## What NOT to do
+## What Not To Include
 
-A common pitfall is to put **non-mixture variables** into `a_vals` /
-`astar_vals`:
+Only mixture columns belong in `a_vals` and `astar_vals`. Do not include
+baseline covariates or time-varying confounders:
 
 ```{r wrong}
-# WRONG
-a_wrong <- c(logM1_0 = -1, logM2_0 = -1, waist_0 = 80)   # <-- waist_0 should not be here!
+# Wrong: waist_0 is a confounder, not a mixture exposure.
+a_wrong <- c(logM1_0 = 0, logM2_0 = 0, waist_0 = 80)
 ```
 
-`waist_0` is a baseline confounder. Changing it between scenarios means
-you would be estimating the effect of changing the **confounder**, not
-the mixture. The Input Audit prints which columns will vary; verify
-before launching a long MCMC run.
+Changing confounders inside the intervention vector would change the
+estimand. In g-computation, time-varying confounders are sampled forward
+under each mixture intervention.
 
-## Comparing contrasts
-
-For policy questions, it can be helpful to run **multiple contrasts**
-and compare:
+## Compare Multiple Contrasts
 
 ```{r compare}
-# Three contrasts: mild, moderate, strong shifts
-contrasts <- list(
-  mild     = c(0.25, 0.75),
-  moderate = c(0.10, 0.90),
-  strong   = c(0.05, 0.95)
+contrast_grid <- list(
+  q25_q75 = c(0.25, 0.75),
+  q10_q90 = c(0.10, 0.90),
+  q05_q95 = c(0.05, 0.95)
 )
 
-results_list <- lapply(names(contrasts), function(nm) {
+fits <- lapply(contrast_grid, function(prob) {
   gbkmr_run(
-    data = prepared_data, time_points = 3,
-    a_probs = contrasts[[nm]],
-    iter = 15000
+    data = prepared,
+    time_points = 3,
+    a_probs = prob,
+    iter = 15000,
+    K = 1000
   )
 })
 
-# Compare estimates
-do.call(rbind, lapply(seq_along(results_list), function(i) {
+do.call(rbind, lapply(names(fits), function(name) {
+  ce <- fits[[name]]$causal_effect
   data.frame(
-    contrast = names(contrasts)[i],
-    ACE = results_list[[i]]$causal_effect$estimate,
-    lower = results_list[[i]]$causal_effect$lower,
-    upper = results_list[[i]]$causal_effect$upper
+    contrast = name,
+    estimate = ce$estimate,
+    lower = ce$lower,
+    upper = ce$upper
   )
 }))
 ```
 
-## Summary
+## See Also
 
-- `a_probs` is the simplest way to change the contrast.
-- `a_vals` / `astar_vals` (in `run_gbkmr_panel()`) gives full control.
-- Always restrict the contrast to **mixture columns only**.
-- Check the Input Audit before launching MCMC.
-
-## See also
-
-- [Methodology overview](gbkmr_method_overview.html)
 - [Quick Start](gbkmr_quickstart.html)
+- [Methodology overview](gbkmr_method_overview.html)
+- [Diagnostics and troubleshooting](gbkmr_diagnostics.html)

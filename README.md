@@ -32,9 +32,10 @@ A full description of the methodology is available in the
 
 ## What this package provides
 
-- A single-function interface (`gbkmr_run()`) that handles the full
-  g-computation pipeline: automated data preparation, sequential BKMR
-  fitting, Monte Carlo g-computation, and posterior summarisation.
+- A current workflow built around `prepare_gbkmr_data()`,
+  `detect_variable_patterns()`, and `gbkmr_run()` for data conversion,
+  input auditing, sequential BKMR fitting, Monte Carlo g-computation,
+  and posterior summarisation.
 - Support for **arbitrary numbers of time points, mixture components, and
   time-varying confounders**, with user-configurable intervention contrasts.
 - A **fast-BKMR engine** (via the `fbkmr` package) that is automatically
@@ -59,7 +60,7 @@ Install `causalBKMR` from GitHub:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("Lyric98/causalBKMR")
+devtools::install_github("Lyric98/CausalBKMR")
 
 library(causalBKMR)
 ```
