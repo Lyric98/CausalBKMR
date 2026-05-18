@@ -55,3 +55,8 @@ reference:
     contents:
       - gbkmr_run
       - run_gbkmr_panel
+
+  - title: "S3 Methods"
+    desc: "Print methods for current result objects"
+    contents:
+      - print.gbkmr_detection
