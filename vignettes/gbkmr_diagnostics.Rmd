@@ -7,8 +7,8 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```{r setup, include = FALSE, purl=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE, purl = FALSE)
 ```
 
 This vignette covers diagnostics for the current `causalBKMR` workflow.
@@ -20,7 +20,7 @@ The relevant user-facing functions are `prepare_gbkmr_data()`,
 
 Before running MCMC, inspect the columns that `gbkmr_run()` will use.
 
-```{r check-patterns}
+```{r check-patterns, purl=FALSE}
 patterns <- detect_variable_patterns(prepared, T = 3)
 patterns
 
@@ -46,7 +46,7 @@ baseline covariates.
 
 `gbkmr_run(verbose = TRUE)` prints an audit before fitting models.
 
-```{r audit}
+```{r audit, purl=FALSE}
 fit <- gbkmr_run(
   data = prepared,
   outcome = "Y",
@@ -67,14 +67,14 @@ sample size, and intervention contrast.
 
 The result object stores convergence diagnostics when available.
 
-```{r stored-diagnostics}
+```{r stored-diagnostics, purl=FALSE}
 fit$diagnostics
 ```
 
 If warnings appear, rerun with more iterations and a later posterior
 selection window:
 
-```{r rerun-longer}
+```{r rerun-longer, purl=FALSE}
 fit_long <- gbkmr_run(
   data = prepared,
   outcome = "Y",
@@ -93,7 +93,7 @@ The `sel` argument must contain MCMC iteration indices no larger than
 
 `gbkmr_run()` returns lower-level model objects in `raw_results`.
 
-```{r raw-results}
+```{r raw-results, purl=FALSE}
 raw <- fit$raw_results
 
 names(raw)
@@ -109,7 +109,7 @@ fastBKMR, `raw$fit_y` is a list of subset fits.
 
 Use `bkmr::TracePlot()` for standard BKMR fits.
 
-```{r trace-standard}
+```{r trace-standard, purl=FALSE}
 bkmr::TracePlot(fit = fit$raw_results$fit_y, par = "beta")
 bkmr::TracePlot(fit = fit$raw_results$fit_y, par = "sigsq.eps")
 bkmr::TracePlot(fit = fit$raw_results$fit_y, par = "r")
@@ -117,7 +117,7 @@ bkmr::TracePlot(fit = fit$raw_results$fit_y, par = "r")
 
 For fastBKMR, inspect subset fits:
 
-```{r trace-fast}
+```{r trace-fast, purl=FALSE}
 fit_list <- fit$raw_results$fit_y
 
 bkmr::TracePlot(fit = fit_list[[1]], par = "beta")
@@ -136,7 +136,7 @@ window.
 The g-computation stage stores posterior draws for the low and high
 counterfactual means.
 
-```{r ace-draws}
+```{r ace-draws, purl=FALSE}
 raw <- fit$raw_results
 ace_draws <- raw$Yastar - raw$Ya
 

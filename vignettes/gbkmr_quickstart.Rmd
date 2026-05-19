@@ -7,8 +7,8 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```{r setup, include = FALSE, purl=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE, purl = FALSE)
 ```
 
 This vignette uses the current package implementation in `R/01-validation.R`
@@ -40,7 +40,7 @@ are named `baseline_2`, `baseline_3`, ....
 
 ## Simulate Data
 
-```{r simulate}
+```{r simulate, purl=FALSE}
 library(causalBKMR)
 
 set.seed(123)
@@ -71,7 +71,7 @@ Y <- 50 +
 
 ## Prepare Data
 
-```{r prepare}
+```{r prepare, purl=FALSE}
 prepared <- prepare_gbkmr_data(
   Y = Y,
   Z = Z,
@@ -101,7 +101,7 @@ id
 
 ## Check Detection
 
-```{r detect}
+```{r detect, purl=FALSE}
 detection <- detect_variable_patterns(prepared, T = T_points)
 print(detection)
 ```
@@ -115,7 +115,7 @@ names are wrong, fix the matrices before fitting.
 For real analyses use many more iterations. The small values below are
 only a smoke-test template.
 
-```{r run}
+```{r run, purl=FALSE}
 fit <- gbkmr_run(
   data = prepared,
   outcome = "Y",
@@ -135,7 +135,7 @@ is installed.
 
 ## Read Results
 
-```{r results}
+```{r results, purl=FALSE}
 print(fit)
 summary(fit)
 

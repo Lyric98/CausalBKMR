@@ -7,8 +7,8 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```{r setup, include = FALSE, purl=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE, purl = FALSE)
 ```
 
 The current `gbkmr_run()` interface supports custom intervention
@@ -20,7 +20,7 @@ and you usually do not need to call the lower-level `run_gbkmr_panel()`.
 By default, `gbkmr_run()` compares all mixture columns at the 25th
 percentile with all mixture columns at the 75th percentile:
 
-```{r default}
+```{r default, purl=FALSE}
 fit_default <- gbkmr_run(
   data = prepared,
   time_points = 3,
@@ -41,7 +41,7 @@ high scenario: logM1_0, logM2_0, ..., logM2_2 at their 75th percentiles
 
 Use `a_probs` for a different global quantile shift:
 
-```{r quantiles}
+```{r quantiles, purl=FALSE}
 fit_10_90 <- gbkmr_run(
   data = prepared,
   time_points = 3,
@@ -60,7 +60,7 @@ Use `a_vals` and `astar_vals` when the scientific question is about
 specific exposure levels. These vectors must be named with the mixture
 columns created by `prepare_gbkmr_data()`.
 
-```{r fixed-values}
+```{r fixed-values, purl=FALSE}
 exposure_names <- grep("^logM\\d+_\\d+$", names(prepared), value = TRUE)
 
 # prepare_gbkmr_data(log_transform_mixtures = TRUE) stores log concentrations.
@@ -86,7 +86,7 @@ contain log-transformed mixture columns.
 The names let you define component-specific and time-specific scenarios.
 This example increases only component 2 at every visit:
 
-```{r component-specific}
+```{r component-specific, purl=FALSE}
 a_component <- setNames(rep(log(1), length(exposure_names)), exposure_names)
 astar_component <- a_component
 astar_component[c("logM2_0", "logM2_1", "logM2_2")] <- log(5)
@@ -106,7 +106,7 @@ fit_component <- gbkmr_run(
 Only mixture columns belong in `a_vals` and `astar_vals`. Do not include
 baseline covariates or time-varying confounders:
 
-```{r wrong}
+```{r wrong, purl=FALSE}
 # Wrong: waist_0 is a confounder, not a mixture exposure.
 a_wrong <- c(logM1_0 = 0, logM2_0 = 0, waist_0 = 80)
 ```
@@ -117,7 +117,7 @@ under each mixture intervention.
 
 ## Compare Multiple Contrasts
 
-```{r compare}
+```{r compare, purl=FALSE}
 contrast_grid <- list(
   q25_q75 = c(0.25, 0.75),
   q10_q90 = c(0.10, 0.90),

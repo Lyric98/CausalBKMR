@@ -7,8 +7,8 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```{r setup, include = FALSE, purl=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE, purl = FALSE)
 ```
 
 This vignette describes how the current `gbkmr_run()` interface uses the
@@ -42,14 +42,14 @@ standard `bkmr`.
 `fbkmr` is not a required dependency of `causalBKMR`. Install it only if
 you plan to run large continuous-outcome analyses.
 
-```{r install-fbkmr}
+```{r install-fbkmr, purl=FALSE}
 install.packages("remotes")
 remotes::install_github("junwei-lu/fbkmr")
 ```
 
 Parallel fastBKMR runs also use `doSNOW` and `doParallel` when available.
 
-```{r install-parallel}
+```{r install-parallel, purl=FALSE}
 install.packages(c("doSNOW", "doParallel"))
 ```
 
@@ -57,7 +57,7 @@ install.packages(c("doSNOW", "doParallel"))
 
 Use the same prepared data object created by `prepare_gbkmr_data()`:
 
-```{r auto}
+```{r auto, purl=FALSE}
 library(causalBKMR)
 
 fit_auto <- gbkmr_run(
@@ -82,7 +82,7 @@ size clear in reports and scripts.
 
 You can also request `fastbkmr` directly:
 
-```{r force-fast}
+```{r force-fast, purl=FALSE}
 fit_fast <- gbkmr_run(
   data = prepared_large,
   outcome = "Y",
@@ -105,7 +105,7 @@ the implementation falls back to a sequential run.
 For a new analysis, it is useful to compare the engines on a smaller
 subset before launching a large run.
 
-```{r compare-engines}
+```{r compare-engines, purl=FALSE}
 set.seed(1)
 idx <- sample(seq_len(nrow(prepared_large)), 1500)
 prepared_subset <- prepared_large[idx, ]

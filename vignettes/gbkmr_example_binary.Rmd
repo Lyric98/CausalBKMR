@@ -7,8 +7,8 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```{r setup, include = FALSE, purl=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE, purl = FALSE)
 ```
 
 This vignette uses the current `causalBKMR` API for a binary outcome.
@@ -32,7 +32,7 @@ covariate, the raw matrices are:
 - `X`: `n x 4` matrix with the three time-varying covariate columns first
   and the baseline covariate column last.
 
-```{r simulate-binary}
+```{r simulate-binary, purl=FALSE}
 library(causalBKMR)
 
 set.seed(7)
@@ -65,7 +65,7 @@ Y <- rbinom(n, 1, plogis(linpred))
 
 ## Prepare the Wide g-BKMR Data
 
-```{r prepare-binary}
+```{r prepare-binary, purl=FALSE}
 prepared <- prepare_gbkmr_data(
   Y = Y,
   Z = Z,
@@ -86,7 +86,7 @@ Binary outcomes are supported with the standard `bkmr` engine. The
 outcome model uses `bkmr::kmbayes(..., family = "binomial")`, and
 `causalBKMR` returns counterfactual means on the probability scale.
 
-```{r run-binary}
+```{r run-binary, purl=FALSE}
 fit_binary <- gbkmr_run(
   data = prepared,
   outcome = "Y",
@@ -102,7 +102,7 @@ fit_binary <- gbkmr_run(
 
 The causal effect is a risk difference:
 
-```{r inspect-binary}
+```{r inspect-binary, purl=FALSE}
 fit_binary$causal_effect
 fit_binary$counterfactual_means
 fit_binary$diagnostics
@@ -117,7 +117,7 @@ low exposure trajectory.
 `fastbkmr` does not currently support binary outcomes because the
 current public `fbkmr::skmbayes()` path is Gaussian-only.
 
-```{r binary-fastbkmr}
+```{r binary-fastbkmr, purl=FALSE}
 gbkmr_run(
   data = prepared,
   outcome_type = "binary",

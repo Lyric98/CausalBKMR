@@ -7,8 +7,8 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```{r setup, include = FALSE, purl=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE, purl = FALSE)
 ```
 
 This vignette describes the methodology implemented by the current
@@ -46,7 +46,7 @@ The user supplies three objects:
 `prepare_gbkmr_data()` converts those objects into a wide data frame with
 columns such as `logM1_0`, `logM2_0`, `waist_0`, `logM1_1`, and `Y`.
 
-```{r prepare-example}
+```{r prepare-example, purl=FALSE}
 prepared <- prepare_gbkmr_data(
   Y = Y,
   Z = Z,
@@ -73,7 +73,7 @@ $$
 By default, `gbkmr_run()` sets `a` to the 25th percentile and `a*` to the
 75th percentile for every mixture component at every time point:
 
-```{r default-contrast}
+```{r default-contrast, purl=FALSE}
 fit <- gbkmr_run(
   data = prepared,
   time_points = 3,
@@ -85,7 +85,7 @@ Users can supply explicit trajectories with `a_vals` and `astar_vals`.
 Those vectors must be named with the mixture column names in the
 prepared data.
 
-```{r explicit-contrast}
+```{r explicit-contrast, purl=FALSE}
 exposure_names <- grep("^logM\\d+_\\d+$", names(prepared), value = TRUE)
 
 a_vals <- setNames(rep(0.5, length(exposure_names)), exposure_names)
