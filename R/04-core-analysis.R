@@ -57,13 +57,12 @@ run_gbkmr_panel <- function(
   engine <- match.arg(engine)
   outcome_type <- match.arg(outcome_type)
 
-  # Binary outcome is only supported for standard BKMR; fbkmr::skmbayes()
-  # internally calls kmbayes() without a family argument, so it cannot
-  # fit probit models in the current version.
+  # fastBKMR's public skmbayes() path is Gaussian-only in the current
+  # fbkmr package, so binary outcomes must use standard BKMR.
   if (outcome_type == "binary" && engine == "fastbkmr") {
-    stop("Binary outcome is not supported with engine='fastbkmr'.\n",
-         "  fbkmr::skmbayes() does not expose the family argument.\n",
-         "  Use engine='bkmr' for binary outcomes, or subsample your data.")
+    stop("Binary outcomes are not supported with engine='fastbkmr'.\n",
+         "  fbkmr::skmbayes() uses the Gaussian fast path in the current package.\n",
+         "  Use engine='bkmr' for probit BKMR.")
   }
 
   if (is.null(n_iter)) n_iter <- iter
@@ -130,10 +129,14 @@ run_gbkmr_panel <- function(
   set.seed(currind)
   dat_sim <- sim_popn[sample(seq_len(nrow(sim_popn)), n, replace = FALSE), ]
 
-  exposure_names_at_t <- function(t) paste0("logM", 1:p, "_", t)
-  all_exposure_names <- unlist(lapply(0:(T - 1), exposure_names_at_t))
+  exposure_times <- 0:(T - 1)
+  mediator_times <- if (T > 1) seq_len(T - 1) else integer(0)
+  exposure_names_at_t <- function(t) paste0("logM", seq_len(p), "_", t)
+  all_exposure_names <- unlist(lapply(exposure_times, exposure_names_at_t),
+                               use.names = FALSE)
   mediator_names_at_t <- function(t) paste0(mediator_basenames, "_", t)
-  all_mediator_names  <- unlist(lapply(1:(T - 1), mediator_names_at_t))
+  all_mediator_names <- unlist(lapply(mediator_times, mediator_names_at_t),
+                               use.names = FALSE)
 
   needed_cols <- c("Y", "id", common_covariates, all_exposure_names, all_mediator_names)
   miss <- setdiff(needed_cols, names(dat_sim))
@@ -141,11 +144,12 @@ run_gbkmr_panel <- function(
 
   X_common <- as.matrix(dplyr::select(dat_sim, dplyr::all_of(common_covariates)))
   X_predict_common <- matrix(colMeans(X_common), nrow = 1)
-
-  fitkm_list <- vector("list", T - 1)
-  names(fitkm_list) <- paste0("L", 1:(T - 1))
-  scaleinfo_list <- vector("list", T - 1)
-  names(scaleinfo_list) <- names(fitkm_list)
+  fitkm_list <- vector("list", length(mediator_times))
+  scaleinfo_list <- vector("list", length(mediator_times))
+  if (length(mediator_times) > 0L) {
+    names(fitkm_list) <- paste0("L", mediator_times)
+    names(scaleinfo_list) <- names(fitkm_list)
+  }
 
   # --- Knot helper (only used for engine == "bkmr") ---
   .compute_knots <- function(Z_sc, n_knots) {
@@ -167,7 +171,7 @@ run_gbkmr_panel <- function(
   # =========================================================================
   message("Fitting mediator models ...")
 
-  for (t in 1:(T - 1)) {
+  for (t in mediator_times) {
     y_cols <- mediator_names_at_t(t)
     y_mat  <- as.matrix(dat_sim[, y_cols, drop = FALSE])
     colnames(y_mat) <- y_cols
@@ -262,7 +266,7 @@ run_gbkmr_panel <- function(
   message("\n=== Sampling mediators sequentially ===")
   start_time_global <- proc.time()
 
-  for (t in 1:(T - 1)) {
+  for (t in mediator_times) {
     message(sprintf("\n--- Time point t=%d ---", t))
     start_time_t <- proc.time()
 
@@ -356,18 +360,24 @@ run_gbkmr_panel <- function(
     exp_a_block     <- matrix(a_vec[all_exposure_names],     nrow = K, ncol = pT, byrow = TRUE)
     exp_astar_block <- matrix(astar_vec[all_exposure_names], nrow = K, ncol = pT, byrow = TRUE)
 
-    L_a_blocks <- L_astar_blocks <- list()
-    for (t in 1:(T - 1)) {
-      for (li in seq_along(mediator_basenames)) {
-        L_a_blocks[[length(L_a_blocks) + 1]]         <- L_samp_a[[t]][[li]][j, ]
-        L_astar_blocks[[length(L_astar_blocks) + 1]] <- L_samp_astar[[t]][[li]][j, ]
+    if (length(mediator_times) > 0 && length(mediator_basenames) > 0) {
+      L_a_blocks <- L_astar_blocks <- list()
+      for (t in mediator_times) {
+        for (li in seq_along(mediator_basenames)) {
+          L_a_blocks[[length(L_a_blocks) + 1]] <- L_samp_a[[t]][[li]][j, ]
+          L_astar_blocks[[length(L_astar_blocks) + 1]] <-
+            L_samp_astar[[t]][[li]][j, ]
+        }
       }
-    }
-    L_a_mat2     <- do.call(cbind, L_a_blocks)
-    L_astar_mat2 <- do.call(cbind, L_astar_blocks)
+      L_a_mat2 <- do.call(cbind, L_a_blocks)
+      L_astar_mat2 <- do.call(cbind, L_astar_blocks)
 
-    aL_a_j         <- cbind(exp_a_block,     L_a_mat2)
-    astarL_astar_j <- cbind(exp_astar_block, L_astar_mat2)
+      aL_a_j <- cbind(exp_a_block, L_a_mat2)
+      astarL_astar_j <- cbind(exp_astar_block, L_astar_mat2)
+    } else {
+      aL_a_j <- exp_a_block
+      astarL_astar_j <- exp_astar_block
+    }
 
     for (k in 1:K) {
       newz    <- rbind(aL_a_j[k, ], astarL_astar_j[k, ])

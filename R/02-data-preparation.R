@@ -123,8 +123,8 @@ prepare_gbkmr_data <- function(
   if (use_user_names) {
     cat("Using user-provided time-dependent covariate names: ", paste(td_covariate_names, collapse = ", "), "\n")
   } else {
-    # Use generic names when user doesn't provide them
-    td_covariate_names <- paste0("td_covariate", 1:Ldim)
+    # Use generic names when user does not provide them
+    td_covariate_names <- if (Ldim > 0) paste0("td_covariate", seq_len(Ldim)) else character(0)
     cat("Using generic time-dependent covariate names: ", paste(td_covariate_names, collapse = ", "), "\n")
   }
 
@@ -154,25 +154,21 @@ prepare_gbkmr_data <- function(
   }
 
   # Add baseline time-dependent covariates with proper naming
-  for (l in 1:Ldim) {
-    if (use_user_names) {
-      # Use user's actual covariate name with _0 suffix
-      var_name <- paste0(td_covariate_names[l], "_0")
-    } else {
-      # Use generic name
-      var_name <- paste0("td_covariate", l, "_0")
-    }
+  if (Ldim > 0) {
+    for (l in seq_len(Ldim)) {
+      if (use_user_names) {
+        var_name <- paste0(td_covariate_names[l], "_0")
+      } else {
+        var_name <- paste0("td_covariate", l, "_0")
+      }
 
-    # Extract first time point of this time-dependent covariate from X
-    first_timepoint_col <- l
-    if (first_timepoint_col <= (ncol(X) - n_baseline)) {
-      base_values <- as.numeric(X[, first_timepoint_col])
-      baseline_val <- base_values + rnorm(n, 0, sd = 0.1 * sd(base_values, na.rm = TRUE))
-    } else {
-      baseline_val <- rnorm(n, mean = 0, sd = 1)
+      first_timepoint_col <- l
+      if (first_timepoint_col <= (ncol(X) - n_baseline)) {
+        df[[var_name]] <- as.numeric(X[, first_timepoint_col])
+      } else {
+        stop("Error in indexing baseline time-dependent covariates. Check matrix dimensions.")
+      }
     }
-
-    df[[var_name]] <- baseline_val
   }
 
   # Add mixture exposures in chronological order (logM1_0, logM2_0, ..., logMAdim_T-1)
@@ -200,23 +196,22 @@ prepare_gbkmr_data <- function(
   }
 
   # Add time-dependent covariates with proper naming
-  for (t in 1:(T-1)) {
-    for (l in 1:Ldim) {
-      if (use_user_names) {
-        # Use user's actual covariate name with _t suffix
-        var_name <- paste0(td_covariate_names[l], "_", t)
-      } else {
-        # Use generic name
-        var_name <- paste0("td_covariate", l, "_", t)
-      }
+  if (T > 1 && Ldim > 0) {
+    for (t in seq_len(T - 1)) {
+      for (l in seq_len(Ldim)) {
+        if (use_user_names) {
+          var_name <- paste0(td_covariate_names[l], "_", t)
+        } else {
+          var_name <- paste0("td_covariate", l, "_", t)
+        }
 
-      # Calculate column index in X matrix
-      col_idx <- (t - 1) * Ldim + l
+        col_idx <- t * Ldim + l
 
-      if (col_idx <= (ncol(X) - n_baseline)) {
-        df[[var_name]] <- X[, col_idx]
-      } else {
-        stop("Error in indexing time-dependent covariates. Check matrix dimensions.")
+        if (col_idx <= (ncol(X) - n_baseline)) {
+          df[[var_name]] <- X[, col_idx]
+        } else {
+          stop("Error in indexing time-dependent covariates. Check matrix dimensions.")
+        }
       }
     }
   }

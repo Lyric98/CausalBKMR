@@ -114,9 +114,8 @@ low exposure trajectory.
 
 ## Engine Restrictions
 
-`fastbkmr` does not currently support binary outcomes because
-`fbkmr::skmbayes()` does not expose the `family` argument used by
-`bkmr::kmbayes()`.
+`fastbkmr` does not currently support binary outcomes because the
+current public `fbkmr::skmbayes()` path is Gaussian-only.
 
 ```{r binary-fastbkmr}
 gbkmr_run(

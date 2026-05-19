@@ -193,8 +193,9 @@ print_input_audit <- function(data, outcome, outcome_type, time_points,
 #' @param iter Integer. Total MCMC iterations.
 #' @param n_knots Integer. Knots for kernel approximation.
 #' @param engine Character. "auto" (default), "bkmr", or "fastbkmr". When
-#'   "auto", the engine is selected based on sample size: standard BKMR for
-#'   n <= 2000, fast BKMR for n > 2000 (if fbkmr is installed).
+#'   "auto", the engine is selected based on sample size and outcome type:
+#'   standard BKMR for n <= 2000 or binary outcomes, fast BKMR for large
+#'   continuous-outcome analyses if fbkmr is installed.
 #' @param n_subset Integer or NULL. Number of subsets for fastBKMR. If NULL
 #'   (default), auto-calculated as max(5, floor(n / 1000)).
 #' @param n_cores Integer or NULL. Number of parallel cores for fastBKMR.
@@ -237,24 +238,27 @@ gbkmr_run <- function(
   if (is.null(n)) n <- min(500, nrow(data))
 
   # --- Auto engine selection ---
-  # Threshold: n > 2000 triggers fastBKMR (Sonabend et al. 2024 recommend
-  # ~1000 per subset; 2 subsets x 1000 = 2000 minimum for fastBKMR to be
-  # meaningful; standard BKMR with knots is still tractable below this).
+  # fastBKMR is Gaussian-only in the current public fbkmr::skmbayes() path.
+  if (engine == "fastbkmr" && outcome_type == "binary") {
+    stop("Binary outcomes are not supported with engine='fastbkmr'.\n",
+         "  Use engine='bkmr' for probit BKMR.")
+  }
   if (engine == "auto") {
-    if (n > 2000 && requireNamespace("fbkmr", quietly = TRUE)) {
+    if (outcome_type == "continuous" && n > 2000 &&
+        requireNamespace("fbkmr", quietly = TRUE)) {
       engine <- "fastbkmr"
-      if (verbose) message("Auto-selected engine: fastbkmr (n = ", n, " > 2000)")
+      if (verbose) message("Auto-selected engine: fastbkmr (continuous outcome, n = ", n, " > 2000)")
     } else {
-      if (n > 2000 && verbose) {
-        message("Note: n = ", n, " > 2000. Consider installing 'fbkmr' for faster fitting:\n",
-                "  remotes::install_github('junwei-lu/fbkmr')")
+      if (verbose && n > 2000 && outcome_type == "binary") {
+        message("Auto-selected engine: bkmr. fastbkmr is Gaussian-only in the current fbkmr package.")
+      } else if (verbose && n > 2000) {
+        message("Note: n = ", n, " > 2000. Install fbkmr to enable the Gaussian fastBKMR path.")
       }
       engine <- "bkmr"
       if (verbose && n <= 2000) message("Auto-selected engine: bkmr (n = ", n, " <= 2000)")
     }
   }
 
-  # Default n_subset / n_cores when using fastBKMR
   if (engine == "fastbkmr") {
     if (is.null(n_subset)) n_subset <- max(5L, as.integer(n / 1000))
     if (is.null(n_cores))  n_cores  <- min(n_subset, parallel::detectCores() - 1L, 10L)
@@ -265,6 +269,28 @@ gbkmr_run <- function(
 
   # Detect variable structure
   detection <- detect_variable_patterns(data, time_points)
+  if (time_points > 1 && detection$Ldim < 1) {
+    stop("No time-varying covariates detected. ",
+         "The longitudinal g-BKMR workflow requires at least one ",
+         "time-varying covariate when time_points > 1.")
+  }
+  binary_td <- character(0)
+  if (detection$Ldim > 0L) {
+    for (nm in detection$td_covariate_names) {
+      cols <- grep(paste0("^", nm, "_\\d+$"), names(data), value = TRUE)
+      if (length(cols) > 0L && detect_variable_type(unlist(data[, cols, drop = FALSE])) == "binary") {
+        binary_td <- c(binary_td, nm)
+      }
+    }
+  }
+  if (length(binary_td) > 0L) {
+    warning("Detected binary time-varying confounder(s): ",
+            paste(binary_td, collapse = ", "),
+            ". Version 1 fits these L variables as Gaussian mediators in ",
+            "both bkmr and fastbkmr paths; interpret g-computation results with caution.",
+            call. = FALSE)
+  }
+
 
   # Print full input audit so user knows what the package understood
   if (verbose) {

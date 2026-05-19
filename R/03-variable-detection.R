@@ -61,120 +61,45 @@
 #' @export
 detect_variable_patterns <- function(data, T) {
 
-  # Detect number of exposures per time point (p)
+  # Detect number of exposures per time point (p).
   p <- length(grep("^logM\\d+_0$", names(data)))
 
-  # Try to detect actual time-dependent covariate names from data
-  # Look for baseline TD covariates with various patterns
-  baseline_td_patterns <- list(
-    # Pattern 1: Known covariate names with 0 (e.g., bmi_0, bp_0)
-    "known_with_underscore" = "^[a-zA-Z_]+_0$",
-    # Pattern 2: Known covariate names ending with 0 (e.g., bmi0, bp0)
-    "known_ending_zero" = "^[a-zA-Z_]+0$",
-    # Pattern 3: Generated format (waist0_1, waist0_2, etc.)
-    "generated_format" = "^[a-zA-Z_]+0_\\d+$",
-    # Pattern 4: Generic td_covariate format
-    "generic_format" = "^td_covariate\\d+_0$"
-  )
+  # Current prepared data uses underscore-suffixed TD covariates:
+  #   name_0, name_1, ..., name_(T-1)
+  # Permit digits in the base name (for example L1_0 or bmi2_0),
+  # but exclude mixture, outcome, id, sex, and generated baseline columns.
+  baseline_td_vars <- grep("_0$", names(data), value = TRUE)
+  baseline_td_vars <- baseline_td_vars[
+    !grepl("^logM\\d+_0$", baseline_td_vars) &
+      !baseline_td_vars %in% c("Y", "id", "sex") &
+      !grepl("^baseline_\\d+$", baseline_td_vars)
+  ]
 
-  baseline_td_vars <- character(0)
-  detected_pattern <- ""
-  td_covariate_names <- character(0)
-
-  # Try each pattern to find baseline TD covariates
-  for (pattern_name in names(baseline_td_patterns)) {
-    pattern <- baseline_td_patterns[[pattern_name]]
-    matches <- grep(pattern, names(data), value = TRUE)
-    if (length(matches) > 0) {
-      baseline_td_vars <- matches
-      detected_pattern <- pattern_name
-
-      # Extract base names from the matches
-      if (pattern_name == "known_with_underscore") {
-        # Extract names like "bmi", "bp" from "bmi_0", "bp_0"
-        td_covariate_names <- gsub("_0$", "", matches)
-      } else if (pattern_name == "known_ending_zero") {
-        # Extract names like "bmi", "bp" from "bmi0", "bp0"
-        td_covariate_names <- gsub("0$", "", matches)
-      } else if (pattern_name == "generated_format") {
-        # For waist0_1, waist0_2, extract "waist" and number the covariates
-        base_name <- gsub("0_\\d+$", "", matches[1])
-        n_covariates <- length(matches)
-        td_covariate_names <- paste0(base_name, 1:n_covariates)
-      } else if (pattern_name == "generic_format") {
-        # For td_covariate1_0, td_covariate2_0, extract the names
-        td_covariate_names <- gsub("_0$", "", matches)
-      }
-      break
-    }
-  }
-
-  # If no baseline TD covariates found, set defaults
   if (length(baseline_td_vars) == 0) {
-    baseline_td_vars <- character(0)
-    Ldim <- 0
+    Ldim <- 0L
     td_covariate_names <- character(0)
+    detected_pattern <- "none"
+    td_vars_by_time <- list()
     warning("No baseline time-dependent covariates detected. Setting Ldim = 0.")
   } else {
     Ldim <- length(baseline_td_vars)
-  }
+    td_covariate_names <- sub("_0$", "", baseline_td_vars)
+    detected_pattern <- "underscore_suffix"
+    td_vars_by_time <- list()
 
-  # Detect time-dependent covariates for each time point t = 1, 2, ..., T-1
-  td_vars_by_time <- list()
+    if (T > 1) {
+      for (t in seq_len(T - 1)) {
+        td_vars_t <- paste0(td_covariate_names, "_", t)
+        missing_t <- setdiff(td_vars_t, names(data))
 
-  if (Ldim > 0 && T > 1) {
-    for (t in 1:(T-1)) {
-      td_vars_t <- character(0)
-
-      # Generate possible variable names based on detected pattern
-      if (detected_pattern == "known_with_underscore") {
-        # Look for bmi_1, bp_1, bmi_2, bp_2, etc.
-        potential_vars <- paste0(td_covariate_names, "_", t)
-      } else if (detected_pattern == "known_ending_zero") {
-        # Look for bmi1, bp1, bmi2, bp2, etc.
-        potential_vars <- paste0(td_covariate_names, t)
-      } else if (detected_pattern == "generated_format") {
-        # Look for waist1_1, waist1_2, waist2_1, waist2_2, etc.
-        base_name <- gsub("0_\\d+$", "", baseline_td_vars[1])
-        potential_vars <- paste0(base_name, t, "_", 1:Ldim)
-      } else if (detected_pattern == "generic_format") {
-        # Look for td_covariate1_1, td_covariate2_1, etc.
-        potential_vars <- paste0(td_covariate_names, "_", t)
-      }
-
-      # Check which of these potential variables exist in the data
-      existing_vars <- intersect(potential_vars, names(data))
-
-      if (length(existing_vars) == Ldim) {
-        td_vars_t <- existing_vars
-      } else {
-        # Fallback: try pattern matching
-        time_patterns <- c(
-          paste0("^.*", t, "_\\d+$"),    # any_name1_1, any_name1_2, etc.
-          paste0("^.*_", t, "_\\d+$"),   # any_name_1_1, any_name_1_2, etc.
-          paste0("^.*", t, "$")          # any_name1 (single TD covariate)
-        )
-
-        for (pattern in time_patterns) {
-          matches <- grep(pattern, names(data), value = TRUE)
-          # Exclude exposure variables and outcome/id
-          matches <- matches[!grepl("^logM\\d+_", matches)]
-          matches <- matches[!matches %in% c("Y", "id")]
-
-          if (length(matches) >= Ldim) {
-            td_vars_t <- matches[1:Ldim]
-            break
-          }
+        if (length(missing_t) > 0) {
+          stop("Cannot detect time-dependent covariates for time ", t,
+               ". Missing expected variable(s): ", paste(missing_t, collapse = ", "),
+               ". Available variables: ", paste(names(data), collapse = ", "))
         }
-      }
 
-      if (length(td_vars_t) != Ldim) {
-        stop("Cannot detect time-dependent covariates for time ", t,
-             ". Expected ", Ldim, " variables but found ", length(td_vars_t),
-             ". Available variables: ", paste(names(data), collapse = ", "))
+        td_vars_by_time[[paste0("t", t)]] <- td_vars_t
       }
-
-      td_vars_by_time[[t]] <- td_vars_t
     }
   }
 
@@ -218,8 +143,15 @@ print.gbkmr_detection <- function(x, ...) {
 
   if (length(x$td_vars_by_time) > 0) {
     cat("\nTime-dependent variables by time point:\n")
-    for (t in names(x$td_vars_by_time)) {
-      cat("  Time", t, ":", paste(x$td_vars_by_time[[t]], collapse = ", "), "\n")
+    for (i in seq_along(x$td_vars_by_time)) {
+      time_label <- names(x$td_vars_by_time)[i]
+      if (is.null(time_label) || is.na(time_label) || time_label == "") {
+        time_label <- as.character(i)
+      } else {
+        time_label <- sub("^t", "", time_label)
+      }
+      cat("  Time", time_label, ":",
+          paste(x$td_vars_by_time[[i]], collapse = ", "), "\n")
     }
   }
 

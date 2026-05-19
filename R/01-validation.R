@@ -56,6 +56,10 @@ validate_user_matrices <- function(Y, Z, X, T, Adim, Ldim, n_baseline) {
   if (T < 1) stop("time_points must be >= 1")
   if (Adim < 1) stop("mixture_components must be >= 1")
   if (Ldim < 0) stop("td_covariates must be >= 0")
+  if (T > 1 && Ldim < 1) {
+    stop("td_covariates must be >= 1 when time_points > 1 for g-BKMR.\n",
+         "For single-time BKMR fallback, use time_points = 1.")
+  }
   if (n_baseline < 0) stop("baseline_covariates must be >= 0")
 
   # Matrix dimension checks

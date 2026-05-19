@@ -122,10 +122,23 @@ outcomes, the result is a risk difference.
 | `bkmr` | `bkmr::kmbayes()` | Default engine; supports continuous and binary outcomes |
 | `fastbkmr` | `fbkmr::skmbayes()` | Optional large-sample engine for continuous outcomes |
 
-With `engine = "auto"`, the package uses `fastbkmr` only when `n > 2000`
-and `fbkmr` is installed. Otherwise it uses standard `bkmr`.
+With `engine = "auto"`, the package uses `fastbkmr` only for large
+continuous-outcome analyses when `fbkmr` is installed. Otherwise it uses
+standard `bkmr`.
 
-Binary outcomes require `engine = "bkmr"`.
+Version 1 support note:
+
+| Outcome | Time-dependent confounder `L` | `engine = "bkmr"` | `engine = "fastbkmr"` |
+|---------|-------------------------------|-------------------|-----------------------|
+| continuous | all continuous | Supported: Gaussian models throughout | Supported: Gaussian models throughout |
+| binary | all continuous | Supported: probit outcome model | Not supported; hard error |
+| continuous | any binary | Runs with warning: binary `L` is fit and sampled as Gaussian | Runs with warning: binary `L` is fit and sampled as Gaussian |
+| binary | any binary | Runs with warning: probit outcome plus Gaussian `L` models | Not supported; hard error |
+
+In this table, binary means a 0/1 outcome or a 0/1 time-dependent
+confounder. Mixture exposures can remain continuous. The current public
+`fbkmr::skmbayes()` path is Gaussian-only; generalized/logistic fastBKMR
+work is not part of the installed `fbkmr` package used here.
 
 ## Assumptions
 

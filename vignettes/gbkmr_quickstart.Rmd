@@ -130,7 +130,8 @@ fit <- gbkmr_run(
 ```
 
 `engine = "auto"` selects standard BKMR for `n <= 2000`. For larger
-sample sizes it uses `fastbkmr` only if the `fbkmr` package is installed.
+continuous-outcome analyses it uses `fastbkmr` only if the `fbkmr` package
+is installed.
 
 ## Read Results
 
