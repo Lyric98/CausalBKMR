@@ -113,7 +113,7 @@ test_that("binary outcome with fastbkmr engine errors clearly", {
     gbkmr_run(data = dat, outcome_type = "binary",
               time_points = 3, iter = 200, n = 40, K = 3,
               engine = "fastbkmr", verbose = FALSE),
-    "Binary outcome is not supported"
+    "Binary outcomes are not supported"
   )
 })
 

@@ -30,7 +30,7 @@ test_that("detect_variable_patterns finds generic covariates", {
   det <- detect_variable_patterns(dat, T = 2)
   expect_equal(det$p, 2)
   expect_equal(det$Ldim, 1)
-  expect_equal(det$detected_pattern, "generic_format")
+  expect_equal(det$detected_pattern, "underscore_suffix")
 })
 
 test_that("detect_variable_patterns counts exposures correctly", {
