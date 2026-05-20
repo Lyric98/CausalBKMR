@@ -38,10 +38,11 @@ A full description of the methodology is available in the
   and posterior summarisation.
 - Support for **arbitrary numbers of time points, mixture components, and
   time-varying confounders**, with user-configurable intervention contrasts.
-- A **fast-BKMR engine** (via the `fbkmr` package) for large
-  continuous-outcome analyses with Gaussian time-varying confounder models
+- A **fast-BKMR engine** (via the `fbkmr` package) for large all-Gaussian
+  analyses: continuous outcome and continuous time-varying confounders
   (n > 2,000), extending applicability to cohorts of MESA / ARIC scale.
-- **Continuous and binary outcomes** (probit BKMR for the latter).
+- **Continuous and binary outcomes**, plus binary time-varying confounders,
+  via probit BKMR in the standard `bkmr` engine.
 - An **Input Audit** block that prints the package's interpretation of
   your data before launching MCMC, plus **convergence diagnostics**
   (effective sample size, Geweke z-scores) for every fitted model.

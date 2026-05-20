@@ -113,8 +113,75 @@ test_that("binary outcome with fastbkmr engine errors clearly", {
     gbkmr_run(data = dat, outcome_type = "binary",
               time_points = 3, iter = 200, n = 40, K = 3,
               engine = "fastbkmr", verbose = FALSE),
-    "Binary outcomes are not supported"
+    "Binary outcomes or binary time-varying confounders"
   )
+})
+
+
+test_that("binary time-varying confounders use probit mediator models", {
+  skip_if_not_installed("bkmr")
+  set.seed(42)
+  n <- 80
+  Y <- rnorm(n)
+  Z <- matrix(abs(rnorm(n * 4)) + 0.01, n, 4)
+  L0 <- rbinom(n, 1, 0.5)
+  L1 <- rbinom(n, 1, plogis(-0.2 + 0.5 * L0 + 0.2 * Z[, 1]))
+  X <- cbind(L0, L1, sex = rbinom(n, 1, 0.5))
+
+  dat <- prepare_gbkmr_data(Y, Z, X,
+    time_points = 2, mixture_components = 2,
+    td_covariates = 1, baseline_covariates = 1,
+    td_covariate_names = "Lbin", log_transform_mixtures = TRUE)
+
+  res <- gbkmr_run(
+    data = dat, outcome_type = "continuous", time_points = 2,
+    iter = 100, sel = c(80, 100), n = 50, K = 2,
+    n_knots = 10, engine = "bkmr", verbose = FALSE)
+
+  expect_equal(res$call_info$mediator_types[["Lbin"]], "binary")
+  expect_equal(res$raw_results$fit_mediators[[1]][[1]]$family, "binomial")
+  expect_true(all(as.vector(res$raw_results$L_samp_a[[1]][[1]]) %in% c(0, 1)))
+})
+
+test_that("binary time-varying confounders reject fastbkmr engine", {
+  set.seed(42)
+  n <- 40
+  Y <- rnorm(n)
+  Z <- matrix(abs(rnorm(n * 4)) + 0.01, n, 4)
+  X <- cbind(rbinom(n, 1, 0.5), rbinom(n, 1, 0.5), rbinom(n, 1, 0.5))
+
+  dat <- prepare_gbkmr_data(Y, Z, X,
+    time_points = 2, mixture_components = 2,
+    td_covariates = 1, baseline_covariates = 1,
+    td_covariate_names = "Lbin", log_transform_mixtures = TRUE)
+
+  expect_error(
+    gbkmr_run(data = dat, outcome_type = "continuous",
+              time_points = 2, iter = 50, n = 30, K = 2,
+              engine = "fastbkmr", verbose = FALSE),
+    "Binary outcomes or binary time-varying confounders"
+  )
+})
+test_that("time_points equals one falls back to outcome-only BKMR", {
+  skip_if_not_installed("bkmr")
+  set.seed(7)
+  n <- 50
+  Y <- rnorm(n)
+  Z <- matrix(abs(rnorm(n * 2)) + 0.01, n, 2)
+  X <- matrix(rbinom(n, 1, 0.5), n, 1)
+
+  dat <- prepare_gbkmr_data(Y, Z, X,
+    time_points = 1, mixture_components = 2,
+    td_covariates = 0, baseline_covariates = 1,
+    log_transform_mixtures = TRUE)
+
+  res <- suppressWarnings(gbkmr_run(
+    data = dat, outcome_type = "continuous", time_points = 1,
+    iter = 100, sel = c(80, 100), n = 40, K = 2,
+    n_knots = 10, engine = "bkmr", verbose = FALSE))
+
+  expect_equal(length(res$raw_results$fit_mediators), 0)
+  expect_s3_class(res, "gbkmr_results")
 })
 
 test_that("convergence diagnostics are returned", {

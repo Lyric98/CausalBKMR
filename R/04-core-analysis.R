@@ -8,6 +8,9 @@
 #' @param T Integer. Number of time points (including t=0).
 #' @param p Integer. Number of exposures per time point.
 #' @param mediator_basenames Character vector. Base names for time-dependent confounders.
+#' @param mediator_types Character vector. "continuous" or "binary" for each
+#'   time-dependent confounder. Binary mediators use probit BKMR and Bernoulli
+#'   Monte Carlo sampling under engine="bkmr".
 #' @param common_covariates Character vector. Baseline covariate names.
 #' @param currind Integer. Random seed.
 #' @param n Integer. Sample size for analysis.
@@ -37,6 +40,7 @@ run_gbkmr_panel <- function(
     T = 5,
     p = 3,
     mediator_basenames = c("waist"),
+    mediator_types = NULL,
     common_covariates = c("sex", "waist0"),
     currind = 1,
     n = 500,
@@ -57,14 +61,6 @@ run_gbkmr_panel <- function(
   engine <- match.arg(engine)
   outcome_type <- match.arg(outcome_type)
 
-  # fastBKMR's public skmbayes() path is Gaussian-only in the current
-  # fbkmr package, so binary outcomes must use standard BKMR.
-  if (outcome_type == "binary" && engine == "fastbkmr") {
-    stop("Binary outcomes are not supported with engine='fastbkmr'.\n",
-         "  fbkmr::skmbayes() uses the Gaussian fast path in the current package.\n",
-         "  Use engine='bkmr' for probit BKMR.")
-  }
-
   if (is.null(n_iter)) n_iter <- iter
   if (!"Y" %in% names(sim_popn)) stop("Data must contain outcome variable 'Y'")
   if (!"id" %in% names(sim_popn)) stop("Data must contain 'id' column")
@@ -73,6 +69,30 @@ run_gbkmr_panel <- function(
     n <- nrow(sim_popn)
   }
   if (max(sel) > max(iter, n_iter)) stop("sel contains indices beyond total MCMC iterations!")
+
+  if (is.null(mediator_types)) {
+    mediator_types <- rep("continuous", length(mediator_basenames))
+  }
+  if (length(mediator_types) != length(mediator_basenames)) {
+    stop("mediator_types must have the same length as mediator_basenames")
+  }
+  if (length(mediator_basenames) == 0L) {
+    mediator_types <- character(0)
+  } else {
+    mediator_types <- match.arg(mediator_types, c("continuous", "binary"),
+                                several.ok = TRUE)
+    names(mediator_types) <- mediator_basenames
+  }
+
+  # fastBKMR's public skmbayes() path is Gaussian-only in the current
+  # fbkmr package, so binary outcomes or binary mediators must use standard BKMR.
+  if (engine == "fastbkmr" &&
+      (outcome_type == "binary" || any(mediator_types == "binary"))) {
+    stop("Binary outcomes or binary time-varying confounders are not supported ",
+         "with engine='fastbkmr'.\n",
+         "  fbkmr::skmbayes() uses the Gaussian fast path in the current package.\n",
+         "  Use engine='bkmr' for probit BKMR.")
+  }
 
   # --- Internal helpers ---
   .fit_model <- function(y, Z_sc, X, it, knots = NULL, family = "gaussian") {
@@ -107,12 +127,14 @@ run_gbkmr_panel <- function(
     }
   }
 
-  .sample_pred <- function(fit, Znew, Xnew, sel_j) {
+  .sample_pred <- function(fit, Znew, Xnew, sel_j, type = "link") {
     if (is.list(fit) && !inherits(fit, "bkmrfit")) {
       bkmr::SamplePred(fit[[sample(length(fit), 1)]],
-                        Znew = Znew, Xnew = Xnew, sel = sel_j)
+                        Znew = Znew, Xnew = Xnew, sel = sel_j,
+                        type = type)
     } else {
-      bkmr::SamplePred(fit, Znew = Znew, Xnew = Xnew, sel = sel_j)
+      bkmr::SamplePred(fit, Znew = Znew, Xnew = Xnew, sel = sel_j,
+                       type = type)
     }
   }
 
@@ -206,11 +228,13 @@ run_gbkmr_panel <- function(
       X_common_fit <- X_common[valid_idx, , drop = FALSE]
       y_vec_fit <- y_vec[valid_idx]
 
-      message(sprintf("  L%d: fitting %s [engine=%s, Z=%d cols, n=%d]",
-                      t, colnames(y_mat)[li], engine, ncol(Z_sc_fit), length(y_vec_fit)))
+      mediator_family <- if (mediator_types[[li]] == "binary") "binomial" else "gaussian"
+      message(sprintf("  L%d: fitting %s [engine=%s, Z=%d cols, n=%d, family=%s]",
+                      t, colnames(y_mat)[li], engine, ncol(Z_sc_fit),
+                      length(y_vec_fit), mediator_family))
 
       fit_list_t[[li]] <- .fit_model(y_vec_fit, Z_sc_fit, X_common_fit,
-                                      iter, knots_t)
+                                      iter, knots_t, family = mediator_family)
     }
     fitkm_list[[t]] <- fit_list_t
   }
@@ -255,8 +279,8 @@ run_gbkmr_panel <- function(
   }
 
   # Containers
-  L_samp_a     <- vector("list", T - 1)
-  L_samp_astar <- vector("list", T - 1)
+  L_samp_a     <- vector("list", length(mediator_times))
+  L_samp_astar <- vector("list", length(mediator_times))
 
   scale_like <- function(newZ, center, sc) scale(newZ, center = center, scale = sc)
 
@@ -324,10 +348,20 @@ run_gbkmr_panel <- function(
           newz_sc <- scale_like(newz, scinfo_t$center, scinfo_t$scale)
 
           set.seed(j + 10000 + li)
-          L_pred <- .sample_pred(fit_li, Znew = newz_sc,
-                                 Xnew = X_predict_common, sel_j = sel[j])
-          L_a_mat[j, k]     <- L_pred[, "znew1"]
-          L_astar_mat[j, k] <- L_pred[, "znew2"]
+          if (mediator_types[[li]] == "binary") {
+            L_prob <- .sample_pred(fit_li, Znew = newz_sc,
+                                   Xnew = X_predict_common, sel_j = sel[j],
+                                   type = "response")
+            prob_a <- min(max(L_prob[, "znew1"], 0), 1)
+            prob_astar <- min(max(L_prob[, "znew2"], 0), 1)
+            L_a_mat[j, k]     <- stats::rbinom(1, 1, prob_a)
+            L_astar_mat[j, k] <- stats::rbinom(1, 1, prob_astar)
+          } else {
+            L_pred <- .sample_pred(fit_li, Znew = newz_sc,
+                                   Xnew = X_predict_common, sel_j = sel[j])
+            L_a_mat[j, k]     <- L_pred[, "znew1"]
+            L_astar_mat[j, k] <- L_pred[, "znew2"]
+          }
         }
 
         if (j %% verbose_every == 0) {
@@ -436,6 +470,7 @@ run_gbkmr_panel <- function(
     meta = list(
       T = T, p = p,
       mediator_basenames = mediator_basenames,
+      mediator_types = mediator_types,
       common_covariates = common_covariates,
       K = K, sel = sel, iter = iter, n_iter = n_iter,
       n_knots = n_knots, n = n,

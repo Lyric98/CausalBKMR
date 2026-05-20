@@ -129,9 +129,9 @@ fit <- gbkmr_run(
 )
 ```
 
-`engine = "auto"` selects standard BKMR for `n <= 2000`. For larger
-continuous-outcome analyses it uses `fastbkmr` only if the `fbkmr` package
-is installed.
+`engine = "auto"` selects standard BKMR for `n <= 2000`, binary
+outcomes, or binary time-varying confounders. For larger all-Gaussian
+analyses it uses `fastbkmr` only if the `fbkmr` package is installed.
 
 ## Read Results
 

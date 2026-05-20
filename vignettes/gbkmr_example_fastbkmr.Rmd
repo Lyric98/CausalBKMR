@@ -23,10 +23,10 @@ Version 1 separates the standard BKMR path from the fastBKMR path:
 
 | Outcome | Time-dependent confounder `L` | `engine = "bkmr"` | `engine = "fastbkmr"` |
 |---------|-------------------------------|-------------------|-----------------------|
-| continuous | all continuous | Supported: Gaussian models throughout | Supported: Gaussian models throughout |
-| binary | all continuous | Supported: probit outcome model | Not supported; hard error |
-| continuous | any binary | Runs with warning: binary `L` is fit and sampled as Gaussian | Runs with warning: binary `L` is fit and sampled as Gaussian |
-| binary | any binary | Runs with warning: probit outcome plus Gaussian `L` models | Not supported; hard error |
+| continuous | all continuous | Supported: Gaussian outcome + Gaussian `L` models | Supported: Gaussian fastBKMR throughout |
+| binary | all continuous | Supported: probit outcome + Gaussian `L` models | Not supported; hard error |
+| continuous | any binary | Supported: Gaussian outcome + probit `L` mediator models with Bernoulli Monte Carlo sampling | Not supported; hard error |
+| binary | any binary | Supported: probit outcome + probit `L` mediator models with Bernoulli Monte Carlo sampling | Not supported; hard error |
 
 Here, binary means a 0/1 outcome or a 0/1 time-dependent confounder.
 Mixture exposures can still be continuous. `fbkmr::skmbayes()` in the
@@ -34,8 +34,8 @@ current public `fbkmr` package is a Gaussian fast path; generalized or
 logistic fastBKMR is not yet available in this installed package.
 
 With `engine = "auto"`, `gbkmr_run()` chooses `fastbkmr` only for large
-continuous-outcome analyses when `fbkmr` is installed. Otherwise it uses
-standard `bkmr`.
+analyses with a continuous outcome and all continuous time-dependent
+confounders when `fbkmr` is installed. Otherwise it uses standard `bkmr`.
 
 ## Install the Optional Engine
 
@@ -73,8 +73,8 @@ fit_auto <- gbkmr_run(
 ```
 
 For `nrow(prepared_large) > 2000`, this continuous-outcome example uses
-`fastbkmr` if `fbkmr` is installed and the time-dependent confounders are
-modeled as Gaussian. The `n` argument is optional when
+`fastbkmr` if `fbkmr` is installed and all time-dependent confounders are
+continuous. The `n` argument is optional when
 `data` is supplied, but setting it explicitly makes the intended sample
 size clear in reports and scripts.
 
@@ -139,7 +139,8 @@ diagnostics, intervention support, and model settings.
 
 ## Limitations
 
-- Binary outcomes require `engine = "bkmr"`.
+- Binary outcomes and binary time-dependent confounders require
+  `engine = "bkmr"`.
 - `n_knots` applies to standard BKMR only.
 - `fastbkmr` is optional; `engine = "auto"` falls back to `bkmr` when
   `fbkmr` is not installed.

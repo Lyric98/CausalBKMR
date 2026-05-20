@@ -49,3 +49,19 @@ test_that("detect_variable_patterns counts exposures correctly", {
   expect_equal(det$p, 3)
   expect_equal(det$Ldim, 2)
 })
+
+test_that("detect_variable_patterns handles digits in TD covariate names", {
+  set.seed(1)
+  n <- 20
+  dat <- data.frame(
+    id = 1:n, sex = rbinom(n, 1, 0.5),
+    L1_0 = rbinom(n, 1, 0.4), logM1_0 = rnorm(n), logM2_0 = rnorm(n),
+    logM1_1 = rnorm(n), logM2_1 = rnorm(n), L1_1 = rbinom(n, 1, 0.5),
+    Y = rnorm(n)
+  )
+
+  det <- detect_variable_patterns(dat, T = 2)
+  expect_equal(det$p, 2)
+  expect_equal(det$td_covariate_names, "L1")
+  expect_equal(det$td_vars_by_time$t1, "L1_1")
+})

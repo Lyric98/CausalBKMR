@@ -62,7 +62,7 @@
 detect_variable_patterns <- function(data, T) {
 
   # Detect number of exposures per time point (p).
-  p <- length(grep("^logM\\d+_0$", names(data)))
+  p <- length(grep("^logM[0-9]+_0$", names(data)))
 
   # Current prepared data uses underscore-suffixed TD covariates:
   #   name_0, name_1, ..., name_(T-1)
@@ -70,9 +70,9 @@ detect_variable_patterns <- function(data, T) {
   # but exclude mixture, outcome, id, sex, and generated baseline columns.
   baseline_td_vars <- grep("_0$", names(data), value = TRUE)
   baseline_td_vars <- baseline_td_vars[
-    !grepl("^logM\\d+_0$", baseline_td_vars) &
+    !grepl("^logM[0-9]+_0$", baseline_td_vars) &
       !baseline_td_vars %in% c("Y", "id", "sex") &
-      !grepl("^baseline_\\d+$", baseline_td_vars)
+      !grepl("^baseline_[0-9]+$", baseline_td_vars)
   ]
 
   if (length(baseline_td_vars) == 0) {

@@ -61,7 +61,7 @@ specific exposure levels. These vectors must be named with the mixture
 columns created by `prepare_gbkmr_data()`.
 
 ```{r fixed-values, purl=FALSE}
-exposure_names <- grep("^logM\\d+_\\d+$", names(prepared), value = TRUE)
+exposure_names <- grep("^logM[0-9]+_[0-9]+$", names(prepared), value = TRUE)
 
 # prepare_gbkmr_data(log_transform_mixtures = TRUE) stores log concentrations.
 a_background <- setNames(rep(log(1), length(exposure_names)), exposure_names)

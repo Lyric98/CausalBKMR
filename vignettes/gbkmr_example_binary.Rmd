@@ -114,8 +114,9 @@ low exposure trajectory.
 
 ## Engine Restrictions
 
-`fastbkmr` does not currently support binary outcomes because the
-current public `fbkmr::skmbayes()` path is Gaussian-only.
+`fastbkmr` does not currently support binary outcomes or binary
+time-dependent confounders because the current public `fbkmr::skmbayes()`
+path is Gaussian-only.
 
 ```{r binary-fastbkmr, purl=FALSE}
 gbkmr_run(
@@ -127,14 +128,15 @@ gbkmr_run(
 ```
 
 That call intentionally stops with a clear error. Use `engine = "bkmr"`
-for binary outcomes.
+for binary outcomes or binary time-dependent confounders.
 
 ## Time-Varying Covariates
 
-Binary time-varying covariates can be included in `X`, but the current
-mediator models treat time-varying covariates as Gaussian responses.
-For binary intermediate covariates, interpret the mediator part of the
-model as an approximation and check diagnostics carefully.
+Binary time-varying covariates can be included in `X`. Under
+`engine = "bkmr"`, causalBKMR fits them as probit BKMR mediator models
+and samples them in the Monte Carlo g-computation step with Bernoulli
+draws from the predicted response probabilities. Use `engine = "bkmr"`
+for this setting; `engine = "fastbkmr"` intentionally stops.
 
 ## See Also
 

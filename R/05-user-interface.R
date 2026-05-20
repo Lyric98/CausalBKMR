@@ -132,13 +132,15 @@ print_input_audit <- function(data, outcome, outcome_type, time_points,
                 paste(detection$td_covariate_names, collapse = ", ")))
     for (nm in detection$td_covariate_names) {
       # Detect type using all time-indexed instances (e.g., bmi_0, bmi_1, ...)
-      cols <- grep(paste0("^", nm, "_\\d+$"), names(data), value = TRUE)
+      cols <- intersect(paste0(nm, "_", seq.int(0L, time_points - 1L)),
+                        names(data))
       if (length(cols) > 0L) {
         t <- detect_variable_type(unlist(data[, cols]))
         cat(sprintf("    - %-20s type: %s\n", nm, t))
         if (t == "binary") {
           cat("      NOTE: binary TD confounder -- BKMR mediator model\n")
-          cat("            will treat it as continuous in current version.\n")
+          cat("            uses probit BKMR under engine='bkmr'.\n")
+          cat("            engine='fastbkmr' is not available for binary TD confounders.\n")
         }
       }
     }
@@ -194,8 +196,8 @@ print_input_audit <- function(data, outcome, outcome_type, time_points,
 #' @param n_knots Integer. Knots for kernel approximation.
 #' @param engine Character. "auto" (default), "bkmr", or "fastbkmr". When
 #'   "auto", the engine is selected based on sample size and outcome type:
-#'   standard BKMR for n <= 2000 or binary outcomes, fast BKMR for large
-#'   continuous-outcome analyses if fbkmr is installed.
+#'   standard BKMR for n <= 2000, binary outcomes, or binary time-varying
+#'   confounders; fast BKMR for large all-Gaussian analyses if fbkmr is installed.
 #' @param n_subset Integer or NULL. Number of subsets for fastBKMR. If NULL
 #'   (default), auto-calculated as max(5, floor(n / 1000)).
 #' @param n_cores Integer or NULL. Number of parallel cores for fastBKMR.
@@ -237,19 +239,46 @@ gbkmr_run <- function(
   if (is.null(sel)) sel <- seq(floor(iter * 0.6), iter, by = 25)
   if (is.null(n)) n <- min(500, nrow(data))
 
+  # Detect variable structure
+  detection <- detect_variable_patterns(data, time_points)
+  if (time_points > 1 && detection$Ldim < 1) {
+    stop("No time-varying covariates detected. ",
+         "The longitudinal g-BKMR workflow requires at least one ",
+         "time-varying covariate when time_points > 1.")
+  }
+  binary_td <- character(0)
+  mediator_types <- rep("continuous", length(detection$td_covariate_names))
+  names(mediator_types) <- detection$td_covariate_names
+  if (detection$Ldim > 0L) {
+    for (i in seq_along(detection$td_covariate_names)) {
+      nm <- detection$td_covariate_names[i]
+      cols <- intersect(paste0(nm, "_", seq.int(0L, time_points - 1L)),
+                        names(data))
+      if (length(cols) > 0L && detect_variable_type(unlist(data[, cols, drop = FALSE])) == "binary") {
+        binary_td <- c(binary_td, nm)
+        mediator_types[i] <- "binary"
+      }
+    }
+  }
+
+  actual_outcome_type <- detect_variable_type(data[[outcome]])
+  has_binary_outcome <- outcome_type == "binary" || actual_outcome_type == "binary"
+  has_binary_td <- length(binary_td) > 0L
+
   # --- Auto engine selection ---
   # fastBKMR is Gaussian-only in the current public fbkmr::skmbayes() path.
-  if (engine == "fastbkmr" && outcome_type == "binary") {
-    stop("Binary outcomes are not supported with engine='fastbkmr'.\n",
+  if (engine == "fastbkmr" && (has_binary_outcome || has_binary_td)) {
+    stop("Binary outcomes or binary time-varying confounders are not supported ",
+         "with engine='fastbkmr'.\n",
          "  Use engine='bkmr' for probit BKMR.")
   }
   if (engine == "auto") {
-    if (outcome_type == "continuous" && n > 2000 &&
+    if (!has_binary_outcome && !has_binary_td && n > 2000 &&
         requireNamespace("fbkmr", quietly = TRUE)) {
       engine <- "fastbkmr"
-      if (verbose) message("Auto-selected engine: fastbkmr (continuous outcome, n = ", n, " > 2000)")
+      if (verbose) message("Auto-selected engine: fastbkmr (all-Gaussian analysis, n = ", n, " > 2000)")
     } else {
-      if (verbose && n > 2000 && outcome_type == "binary") {
+      if (verbose && n > 2000 && (has_binary_outcome || has_binary_td)) {
         message("Auto-selected engine: bkmr. fastbkmr is Gaussian-only in the current fbkmr package.")
       } else if (verbose && n > 2000) {
         message("Note: n = ", n, " > 2000. Install fbkmr to enable the Gaussian fastBKMR path.")
@@ -259,36 +288,18 @@ gbkmr_run <- function(
     }
   }
 
+  if (has_binary_td && verbose && engine == "bkmr") {
+    message("Detected binary time-varying confounder(s): ",
+            paste(binary_td, collapse = ", "),
+            ". Using probit BKMR mediator models with Bernoulli Monte Carlo sampling.")
+  }
+
   if (engine == "fastbkmr") {
     if (is.null(n_subset)) n_subset <- max(5L, as.integer(n / 1000))
     if (is.null(n_cores))  n_cores  <- min(n_subset, parallel::detectCores() - 1L, 10L)
   } else {
     if (is.null(n_subset)) n_subset <- 10L
     if (is.null(n_cores))  n_cores  <- 10L
-  }
-
-  # Detect variable structure
-  detection <- detect_variable_patterns(data, time_points)
-  if (time_points > 1 && detection$Ldim < 1) {
-    stop("No time-varying covariates detected. ",
-         "The longitudinal g-BKMR workflow requires at least one ",
-         "time-varying covariate when time_points > 1.")
-  }
-  binary_td <- character(0)
-  if (detection$Ldim > 0L) {
-    for (nm in detection$td_covariate_names) {
-      cols <- grep(paste0("^", nm, "_\\d+$"), names(data), value = TRUE)
-      if (length(cols) > 0L && detect_variable_type(unlist(data[, cols, drop = FALSE])) == "binary") {
-        binary_td <- c(binary_td, nm)
-      }
-    }
-  }
-  if (length(binary_td) > 0L) {
-    warning("Detected binary time-varying confounder(s): ",
-            paste(binary_td, collapse = ", "),
-            ". Version 1 fits these L variables as Gaussian mediators in ",
-            "both bkmr and fastbkmr paths; interpret g-computation results with caution.",
-            call. = FALSE)
   }
 
 
@@ -307,6 +318,7 @@ gbkmr_run <- function(
     T = time_points,
     p = detection$p,
     mediator_basenames = detection$td_covariate_names,
+    mediator_types = mediator_types,
     common_covariates = c("sex", detection$baseline_td_vars),
     currind = currind,
     sel = sel,
@@ -359,6 +371,7 @@ gbkmr_run <- function(
       sample_size = n,
       mcmc_iterations = iter,
       engine = engine,
+      mediator_types = mediator_types,
       a_probs = a_probs
     )
   )
@@ -415,6 +428,11 @@ print_output_summary <- function(results, detection) {
   T_total <- ct$time_points
   Ldim <- detection$Ldim
   n_med <- Ldim * (T_total - 1)
+  mediator_types <- ct$mediator_types
+  if (is.null(mediator_types)) {
+    mediator_types <- rep("continuous", length(detection$td_covariate_names))
+    names(mediator_types) <- detection$td_covariate_names
+  }
   cat(sprintf("  %d mediator BKMR model(s):", n_med))
   if (n_med == 0) {
     cat(" none (no time-varying confounders)\n")
@@ -422,8 +440,13 @@ print_output_summary <- function(results, detection) {
     cat("\n")
     for (t in 1:(T_total - 1)) {
       for (l in seq_along(detection$td_covariate_names)) {
-        cat(sprintf("    - %s at visit t=%d  (Gaussian BKMR)\n",
-                    detection$td_covariate_names[l], t))
+        mediator_family <- if (mediator_types[[l]] == "binary") {
+          "probit BKMR (family='binomial')"
+        } else {
+          "Gaussian BKMR"
+        }
+        cat(sprintf("    - %s at visit t=%d  (%s)\n",
+                    detection$td_covariate_names[l], t, mediator_family))
       }
     }
   }

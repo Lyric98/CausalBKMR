@@ -24,7 +24,7 @@ Before running MCMC, inspect the columns that `gbkmr_run()` will use.
 patterns <- detect_variable_patterns(prepared, T = 3)
 patterns
 
-mixture_cols <- grep("^logM\\d+_\\d+$", names(prepared), value = TRUE)
+mixture_cols <- grep("^logM[0-9]+_[0-9]+$", names(prepared), value = TRUE)
 mixture_cols
 ```
 
@@ -160,7 +160,7 @@ For binary outcomes, these draws are on the risk-difference scale.
 | Mixture columns are missing | `Z` has the wrong number of columns | Use `mixture_components * time_points` columns |
 | Baseline covariates detected incorrectly | `X` columns are in the wrong order | Put all time-varying columns before baseline columns |
 | Binary outcome uses continuous model | `outcome_type` left at the default | Set `outcome_type = "binary"` |
-| fastBKMR requested for a binary outcome | Unsupported engine/outcome combination | Use `engine = "bkmr"` |
+| fastBKMR requested for a binary outcome or binary time-varying confounder | Unsupported by the Gaussian-only fastBKMR path | Use `engine = "bkmr"` |
 | Warnings about low effective sample size | Too few stable posterior draws | Increase `iter` and move `sel` later |
 | Counterfactual values look implausible | Contrast outside support | Use `a_probs`, or choose `a_vals`/`astar_vals` within observed ranges |
 | Parallel fastBKMR fails | Worker startup failed | Set `n_cores = 1` or run on a compute node |

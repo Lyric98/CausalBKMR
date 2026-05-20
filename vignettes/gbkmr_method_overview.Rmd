@@ -86,7 +86,7 @@ Those vectors must be named with the mixture column names in the
 prepared data.
 
 ```{r explicit-contrast, purl=FALSE}
-exposure_names <- grep("^logM\\d+_\\d+$", names(prepared), value = TRUE)
+exposure_names <- grep("^logM[0-9]+_[0-9]+$", names(prepared), value = TRUE)
 
 a_vals <- setNames(rep(0.5, length(exposure_names)), exposure_names)
 astar_vals <- setNames(rep(1.5, length(exposure_names)), exposure_names)
@@ -119,21 +119,21 @@ outcomes, the result is a risk difference.
 
 | Engine | Function | Use case |
 |--------|----------|----------|
-| `bkmr` | `bkmr::kmbayes()` | Default engine; supports continuous and binary outcomes |
-| `fastbkmr` | `fbkmr::skmbayes()` | Optional large-sample engine for continuous outcomes |
+| `bkmr` | `bkmr::kmbayes()` | Default engine; supports continuous and binary outcomes, including binary time-dependent confounders |
+| `fastbkmr` | `fbkmr::skmbayes()` | Optional large-sample engine for all-Gaussian analyses only |
 
 With `engine = "auto"`, the package uses `fastbkmr` only for large
-continuous-outcome analyses when `fbkmr` is installed. Otherwise it uses
-standard `bkmr`.
+analyses with a continuous outcome and all continuous time-dependent
+confounders when `fbkmr` is installed. Otherwise it uses standard `bkmr`.
 
 Version 1 support note:
 
 | Outcome | Time-dependent confounder `L` | `engine = "bkmr"` | `engine = "fastbkmr"` |
 |---------|-------------------------------|-------------------|-----------------------|
-| continuous | all continuous | Supported: Gaussian models throughout | Supported: Gaussian models throughout |
-| binary | all continuous | Supported: probit outcome model | Not supported; hard error |
-| continuous | any binary | Runs with warning: binary `L` is fit and sampled as Gaussian | Runs with warning: binary `L` is fit and sampled as Gaussian |
-| binary | any binary | Runs with warning: probit outcome plus Gaussian `L` models | Not supported; hard error |
+| continuous | all continuous | Supported: Gaussian outcome + Gaussian `L` models | Supported: Gaussian fastBKMR throughout |
+| binary | all continuous | Supported: probit outcome + Gaussian `L` models | Not supported; hard error |
+| continuous | any binary | Supported: Gaussian outcome + probit `L` mediator models with Bernoulli Monte Carlo sampling | Not supported; hard error |
+| binary | any binary | Supported: probit outcome + probit `L` mediator models with Bernoulli Monte Carlo sampling | Not supported; hard error |
 
 In this table, binary means a 0/1 outcome or a 0/1 time-dependent
 confounder. Mixture exposures can remain continuous. The current public
@@ -160,9 +160,10 @@ control and realistic intervention values.
 
 - Baseline covariates enter as linear terms rather than kernel
   modifiers.
-- Time-varying covariates are modeled as Gaussian mediator responses in
-  the current implementation.
-- Binary outcomes are supported only by the standard `bkmr` engine.
+- Binary time-dependent covariates use probit BKMR mediator models and
+  Bernoulli Monte Carlo sampling under the standard `bkmr` engine.
+- Binary outcomes and binary time-dependent covariates are supported only
+  by the standard `bkmr` engine.
 - Explicit `a_vals` and `astar_vals` should stay within observed support
   unless extrapolation is scientifically justified.
 

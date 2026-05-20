@@ -46,8 +46,9 @@ gbkmr_run(
 \item{n_knots}{Integer. Knots for kernel approximation.}
 
 \item{engine}{Character. "auto" (default), "bkmr", or "fastbkmr". When
-"auto", the engine is selected based on sample size: standard BKMR for
-n <= 2000, fast BKMR for n > 2000 (if fbkmr is installed).}
+"auto", the engine is selected based on sample size and variable types:
+standard BKMR for n <= 2000, binary outcomes, or binary time-varying
+confounders; fast BKMR for large all-Gaussian analyses if fbkmr is installed.}
 
 \item{n_subset}{Integer or NULL. Number of subsets for fastBKMR. If NULL
 (default), auto-calculated as max(5, floor(n / 1000)).}
