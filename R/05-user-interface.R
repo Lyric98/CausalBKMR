@@ -138,7 +138,7 @@ print_input_audit <- function(data, outcome, outcome_type, time_points,
         t <- detect_variable_type(unlist(data[, cols]))
         cat(sprintf("    - %-20s type: %s\n", nm, t))
         if (t == "binary") {
-          cat("      NOTE: binary TD confounder -- BKMR mediator model\n")
+          cat("      NOTE: binary TD confounder -- BKMR time-varying confounder model\n")
           cat("            uses probit BKMR under engine='bkmr'.\n")
           cat("            engine='fastbkmr' is not available for binary TD confounders.\n")
         }
@@ -291,7 +291,7 @@ gbkmr_run <- function(
   if (has_binary_td && verbose && engine == "bkmr") {
     message("Detected binary time-varying confounder(s): ",
             paste(binary_td, collapse = ", "),
-            ". Using probit BKMR mediator models with Bernoulli Monte Carlo sampling.")
+            ". Using probit BKMR time-varying confounder models with Bernoulli Monte Carlo sampling.")
   }
 
   if (engine == "fastbkmr") {
@@ -433,7 +433,7 @@ print_output_summary <- function(results, detection) {
     mediator_types <- rep("continuous", length(detection$td_covariate_names))
     names(mediator_types) <- detection$td_covariate_names
   }
-  cat(sprintf("  %d mediator BKMR model(s):", n_med))
+  cat(sprintf("  %d time-varying confounder BKMR model(s):", n_med))
   if (n_med == 0) {
     cat(" none (no time-varying confounders)\n")
   } else {

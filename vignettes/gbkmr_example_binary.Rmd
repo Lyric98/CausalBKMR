@@ -133,7 +133,7 @@ for binary outcomes or binary time-dependent confounders.
 ## Time-Varying Covariates
 
 Binary time-varying covariates can be included in `X`. Under
-`engine = "bkmr"`, causalBKMR fits them as probit BKMR mediator models
+`engine = "bkmr"`, causalBKMR fits them with probit BKMR
 and samples them in the Monte Carlo g-computation step with Bernoulli
 draws from the predicted response probabilities. Use `engine = "bkmr"`
 for this setting; `engine = "fastbkmr"` intentionally stops.

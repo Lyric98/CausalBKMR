@@ -3,8 +3,9 @@ Title: Causal Inference for Time-Varying Environmental Mixtures via g-BKMR
 Version: 0.1.0
 Authors@R: c(
     person("Yanran", "Li", role = c("aut", "cre"), email = "yl5465@cumc.columbia.edu"),
-    person("Author2", "TBD", role = "aut"),
-    person("Author3", "TBD", role = "aut")
+    person("Arce", "Domingo-Relloso", role = "aut"),
+    person("Zilan", "Chai", role = "aut"),
+    person("Linda", "Valeri", role = "aut")
     )
 Description: Combines the g-formula with Bayesian Kernel Machine Regression
     (BKMR) for causal inference with time-varying correlated environmental

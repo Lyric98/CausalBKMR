@@ -9,14 +9,14 @@
 #' @param p Integer. Number of exposures per time point.
 #' @param mediator_basenames Character vector. Base names for time-dependent confounders.
 #' @param mediator_types Character vector. "continuous" or "binary" for each
-#'   time-dependent confounder. Binary mediators use probit BKMR and Bernoulli
+#'   time-dependent confounder. Binary time-varying confounders use probit BKMR and Bernoulli
 #'   Monte Carlo sampling under engine="bkmr".
 #' @param common_covariates Character vector. Baseline covariate names.
 #' @param currind Integer. Random seed.
 #' @param n Integer. Sample size for analysis.
 #' @param K Integer. Monte Carlo samples for g-computation.
 #' @param sel Numeric vector. Post-burn-in MCMC indices for inference.
-#' @param iter Integer. MCMC iterations for mediator models.
+#' @param iter Integer. MCMC iterations for time-varying confounder models.
 #' @param n_iter Integer or NULL. MCMC iterations for outcome model (default: iter).
 #' @param n_knots Integer. Number of knots for BKMR kernel approximation.
 #' @param engine Character. Fitting engine: "bkmr" or "fastbkmr".
@@ -85,7 +85,7 @@ run_gbkmr_panel <- function(
   }
 
   # fastBKMR's public skmbayes() path is Gaussian-only in the current
-  # fbkmr package, so binary outcomes or binary mediators must use standard BKMR.
+  # fbkmr package, so binary outcomes or binary time-varying confounders must use standard BKMR.
   if (engine == "fastbkmr" &&
       (outcome_type == "binary" || any(mediator_types == "binary"))) {
     stop("Binary outcomes or binary time-varying confounders are not supported ",
@@ -189,9 +189,9 @@ run_gbkmr_panel <- function(
   }
 
   # =========================================================================
-  # 1) Fit mediator models
+  # 1) Fit time-varying confounder models
   # =========================================================================
-  message("Fitting mediator models ...")
+  message("Fitting time-varying confounder models ...")
 
   for (t in mediator_times) {
     y_cols <- mediator_names_at_t(t)
@@ -204,7 +204,7 @@ run_gbkmr_panel <- function(
 
     Z_raw <- as.matrix(dplyr::select(dat_sim, dplyr::all_of(Z_names)))
     rows_ok_ZX <- complete.cases(Z_raw, X_common)
-    if (sum(rows_ok_ZX) < 3) stop("Not enough complete rows for mediator at t=", t)
+    if (sum(rows_ok_ZX) < 3) stop("Not enough complete rows for time-varying confounder at t=", t)
 
     Z_sc <- scale(Z_raw[rows_ok_ZX, , drop = FALSE])
     sc_center <- attr(Z_sc, "scaled:center")
@@ -219,7 +219,7 @@ run_gbkmr_panel <- function(
       y_ok  <- y_vec[rows_ok_ZX]
       mask_y <- !is.na(y_ok)
       if (sum(mask_y) < 3) {
-        stop(sprintf("Not enough complete rows for mediator %s at t=%d",
+        stop(sprintf("Not enough complete rows for time-varying confounder %s at t=%d",
                      colnames(y_mat)[li], t))
       }
       valid_idx <- which(rows_ok_ZX)[mask_y]
@@ -285,9 +285,9 @@ run_gbkmr_panel <- function(
   scale_like <- function(newZ, center, sc) scale(newZ, center = center, scale = sc)
 
   # =========================================================================
-  # 4) Sequential mediator sampling
+  # 4) Sequential time-varying confounder sampling
   # =========================================================================
-  message("\n=== Sampling mediators sequentially ===")
+  message("\n=== Sampling time-varying confounders sequentially ===")
   start_time_global <- proc.time()
 
   for (t in mediator_times) {
@@ -313,7 +313,7 @@ run_gbkmr_panel <- function(
       L_astar_mat <- matrix(NA, nrow = length(sel), ncol = K)
 
       for (j in seq_along(sel)) {
-        # Build historical mediator block
+        # Build historical time-varying confounder block
         if (t == 1) {
           L_hist_a_j <- NULL
           L_hist_astar_j <- NULL
@@ -329,7 +329,7 @@ run_gbkmr_panel <- function(
           L_hist_astar_j <- do.call(cbind, L_hist_astar_blocks)
         }
 
-        # Build full Z: [exposure block] + [historical mediator block]
+        # Build full Z: [exposure block] + [historical time-varying confounder block]
         Za_exp_mat     <- matrix(a_exp_t,     nrow = K, ncol = length(a_exp_t),     byrow = TRUE)
         Zastar_exp_mat <- matrix(astar_exp_t, nrow = K, ncol = length(astar_exp_t), byrow = TRUE)
 

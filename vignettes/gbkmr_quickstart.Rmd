@@ -107,7 +107,7 @@ print(detection)
 ```
 
 This check matters because `gbkmr_run()` uses the detected structure to
-build the mediator and outcome models. If `p`, `Ldim`, or the covariate
+build models for time-varying confounders and outcomes. If `p`, `Ldim`, or the covariate
 names are wrong, fix the matrices before fitting.
 
 ## Run Analysis
@@ -154,7 +154,7 @@ ACE = E[Y(a*)] - E[Y(a)]
 ```
 
 Only mixture columns are intervened on. Time-varying confounders are
-sampled forward through the fitted mediator models, and baseline
+sampled forward through fitted time-varying confounder models, and baseline
 covariates enter the BKMR models linearly.
 
 ## Next Steps

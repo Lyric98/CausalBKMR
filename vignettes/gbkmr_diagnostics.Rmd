@@ -97,7 +97,6 @@ The `sel` argument must contain MCMC iteration indices no larger than
 raw <- fit$raw_results
 
 names(raw)
-raw$fit_mediators
 raw$fit_y
 raw$meta
 ```

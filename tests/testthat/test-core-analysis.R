@@ -118,7 +118,7 @@ test_that("binary outcome with fastbkmr engine errors clearly", {
 })
 
 
-test_that("binary time-varying confounders use probit mediator models", {
+test_that("binary time-varying confounders use probit BKMR models", {
   skip_if_not_installed("bkmr")
   set.seed(42)
   n <- 80

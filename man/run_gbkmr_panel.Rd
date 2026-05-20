@@ -38,7 +38,7 @@ run_gbkmr_panel(
 \item{mediator_basenames}{Character vector. Base names for time-dependent confounders.}
 
 \item{mediator_types}{Character vector. "continuous" or "binary" for each
-time-dependent confounder. Binary mediators use probit BKMR and Bernoulli
+time-dependent confounder. Binary time-varying confounders use probit BKMR and Bernoulli
 Monte Carlo sampling under engine="bkmr".}
 
 \item{common_covariates}{Character vector. Baseline covariate names.}
@@ -51,7 +51,7 @@ Monte Carlo sampling under engine="bkmr".}
 
 \item{sel}{Numeric vector. Post-burn-in MCMC indices for inference.}
 
-\item{iter}{Integer. MCMC iterations for mediator models.}
+\item{iter}{Integer. MCMC iterations for time-varying confounder models.}
 
 \item{n_iter}{Integer or NULL. MCMC iterations for outcome model (default: iter).}
 

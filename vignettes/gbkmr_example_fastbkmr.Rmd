@@ -25,8 +25,8 @@ Version 1 separates the standard BKMR path from the fastBKMR path:
 |---------|-------------------------------|-------------------|-----------------------|
 | continuous | all continuous | Supported: Gaussian outcome + Gaussian `L` models | Supported: Gaussian fastBKMR throughout |
 | binary | all continuous | Supported: probit outcome + Gaussian `L` models | Not supported; hard error |
-| continuous | any binary | Supported: Gaussian outcome + probit `L` mediator models with Bernoulli Monte Carlo sampling | Not supported; hard error |
-| binary | any binary | Supported: probit outcome + probit `L` mediator models with Bernoulli Monte Carlo sampling | Not supported; hard error |
+| continuous | any binary | Supported: Gaussian outcome + probit models for binary time-varying confounders with Bernoulli Monte Carlo sampling | Not supported; hard error |
+| binary | any binary | Supported: probit outcome + probit models for binary time-varying confounders with Bernoulli Monte Carlo sampling | Not supported; hard error |
 
 Here, binary means a 0/1 outcome or a 0/1 time-dependent confounder.
 Mixture exposures can still be continuous. `fbkmr::skmbayes()` in the

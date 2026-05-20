@@ -104,7 +104,7 @@ fit_custom <- gbkmr_run(
 The current `gbkmr_run()` implementation follows this sequence:
 
 1. Detect mixture, time-varying, baseline, and outcome columns.
-2. Fit mediator models for time-varying covariates after baseline.
+2. Fit models for post-baseline time-varying confounders.
 3. Fit the outcome model.
 4. Simulate counterfactual covariate histories under `a` and `a*`.
 5. Predict counterfactual outcomes.
@@ -132,8 +132,8 @@ Version 1 support note:
 |---------|-------------------------------|-------------------|-----------------------|
 | continuous | all continuous | Supported: Gaussian outcome + Gaussian `L` models | Supported: Gaussian fastBKMR throughout |
 | binary | all continuous | Supported: probit outcome + Gaussian `L` models | Not supported; hard error |
-| continuous | any binary | Supported: Gaussian outcome + probit `L` mediator models with Bernoulli Monte Carlo sampling | Not supported; hard error |
-| binary | any binary | Supported: probit outcome + probit `L` mediator models with Bernoulli Monte Carlo sampling | Not supported; hard error |
+| continuous | any binary | Supported: Gaussian outcome + probit models for binary time-varying confounders with Bernoulli Monte Carlo sampling | Not supported; hard error |
+| binary | any binary | Supported: probit outcome + probit models for binary time-varying confounders with Bernoulli Monte Carlo sampling | Not supported; hard error |
 
 In this table, binary means a 0/1 outcome or a 0/1 time-dependent
 confounder. Mixture exposures can remain continuous. The current public
@@ -149,8 +149,8 @@ conditions:
   history;
 - sequential exchangeability after conditioning on measured history;
 - positivity for the intervention trajectories;
-- correct enough model specification for the fitted BKMR mediator and
-  outcome models.
+- correct enough model specification for the fitted BKMR models for
+  time-varying confounders and outcomes.
 
 The flexible kernel helps with nonlinear and interactive exposure
 response, but it does not remove the need for measured confounding
@@ -160,7 +160,7 @@ control and realistic intervention values.
 
 - Baseline covariates enter as linear terms rather than kernel
   modifiers.
-- Binary time-dependent covariates use probit BKMR mediator models and
+- Binary time-dependent covariates use probit BKMR models and
   Bernoulli Monte Carlo sampling under the standard `bkmr` engine.
 - Binary outcomes and binary time-dependent covariates are supported only
   by the standard `bkmr` engine.
