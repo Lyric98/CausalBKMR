@@ -1,7 +1,7 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^\.DS_Store$
-^R/old$
+^legacy$
 ^\.github$
 ^_pkgdown\.yml$
 ^docs$
