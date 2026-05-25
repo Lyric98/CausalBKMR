@@ -247,8 +247,8 @@ gbkmr_run <- function(
          "time-varying covariate when time_points > 1.")
   }
   binary_td <- character(0)
-  mediator_types <- rep("continuous", length(detection$td_covariate_names))
-  names(mediator_types) <- detection$td_covariate_names
+  confounder_types <- rep("continuous", length(detection$td_covariate_names))
+  names(confounder_types) <- detection$td_covariate_names
   if (detection$Ldim > 0L) {
     for (i in seq_along(detection$td_covariate_names)) {
       nm <- detection$td_covariate_names[i]
@@ -256,7 +256,7 @@ gbkmr_run <- function(
                         names(data))
       if (length(cols) > 0L && detect_variable_type(unlist(data[, cols, drop = FALSE])) == "binary") {
         binary_td <- c(binary_td, nm)
-        mediator_types[i] <- "binary"
+        confounder_types[i] <- "binary"
       }
     }
   }
@@ -317,8 +317,8 @@ gbkmr_run <- function(
     sim_popn = data,
     T = time_points,
     p = detection$p,
-    mediator_basenames = detection$td_covariate_names,
-    mediator_types = mediator_types,
+    confounder_basenames = detection$td_covariate_names,
+    confounder_types = confounder_types,
     common_covariates = c("sex", detection$baseline_td_vars),
     currind = currind,
     sel = sel,
@@ -345,11 +345,11 @@ gbkmr_run <- function(
   # --- Layer 1 convergence diagnostics ---
   # Check each fitted BKMR model for ESS and Geweke stationarity
   diagnostics <- list()
-  for (t in seq_along(results$fit_mediators)) {
-    for (li in seq_along(results$fit_mediators[[t]])) {
-      nm <- paste0("mediator_t", t, "_", li)
+  for (t in seq_along(results$fit_confounders)) {
+    for (li in seq_along(results$fit_confounders[[t]])) {
+      nm <- paste0("confounder_t", t, "_", li)
       diagnostics[[nm]] <- check_convergence(
-        results$fit_mediators[[t]][[li]], sel_idx = sel)
+        results$fit_confounders[[t]][[li]], sel_idx = sel)
     }
   }
   diagnostics[["outcome_Y"]] <- check_convergence(results$fit_y, sel_idx = sel)
@@ -371,7 +371,7 @@ gbkmr_run <- function(
       sample_size = n,
       mcmc_iterations = iter,
       engine = engine,
-      mediator_types = mediator_types,
+      confounder_types = confounder_types,
       a_probs = a_probs
     )
   )
@@ -428,10 +428,10 @@ print_output_summary <- function(results, detection) {
   T_total <- ct$time_points
   Ldim <- detection$Ldim
   n_med <- Ldim * (T_total - 1)
-  mediator_types <- ct$mediator_types
-  if (is.null(mediator_types)) {
-    mediator_types <- rep("continuous", length(detection$td_covariate_names))
-    names(mediator_types) <- detection$td_covariate_names
+  confounder_types <- ct$confounder_types
+  if (is.null(confounder_types)) {
+    confounder_types <- rep("continuous", length(detection$td_covariate_names))
+    names(confounder_types) <- detection$td_covariate_names
   }
   cat(sprintf("  %d time-varying confounder BKMR model(s):", n_med))
   if (n_med == 0) {
@@ -440,13 +440,13 @@ print_output_summary <- function(results, detection) {
     cat("\n")
     for (t in 1:(T_total - 1)) {
       for (l in seq_along(detection$td_covariate_names)) {
-        mediator_family <- if (mediator_types[[l]] == "binary") {
+        confounder_family <- if (confounder_types[[l]] == "binary") {
           "probit BKMR (family='binomial')"
         } else {
           "Gaussian BKMR"
         }
         cat(sprintf("    - %s at visit t=%d  (%s)\n",
-                    detection$td_covariate_names[l], t, mediator_family))
+                    detection$td_covariate_names[l], t, confounder_family))
       }
     }
   }

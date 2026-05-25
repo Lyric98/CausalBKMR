@@ -46,7 +46,7 @@ gbkmr_run(
 \item{n_knots}{Integer. Knots for kernel approximation.}
 
 \item{engine}{Character. "auto" (default), "bkmr", or "fastbkmr". When
-"auto", the engine is selected based on sample size and variable types:
+"auto", the engine is selected based on sample size and outcome type:
 standard BKMR for n <= 2000, binary outcomes, or binary time-varying
 confounders; fast BKMR for large all-Gaussian analyses if fbkmr is installed.}
 

@@ -8,8 +8,8 @@ run_gbkmr_panel(
   sim_popn,
   T = 5,
   p = 3,
-  mediator_basenames = c("waist"),
-  mediator_types = NULL,
+  confounder_basenames = c("waist"),
+  confounder_types = NULL,
   common_covariates = c("sex", "waist0"),
   currind = 1,
   n = 500,
@@ -35,9 +35,9 @@ run_gbkmr_panel(
 
 \item{p}{Integer. Number of exposures per time point.}
 
-\item{mediator_basenames}{Character vector. Base names for time-dependent confounders.}
+\item{confounder_basenames}{Character vector. Base names for time-dependent confounders.}
 
-\item{mediator_types}{Character vector. "continuous" or "binary" for each
+\item{confounder_types}{Character vector. "continuous" or "binary" for each
 time-dependent confounder. Binary time-varying confounders use probit BKMR and Bernoulli
 Monte Carlo sampling under engine="bkmr".}
 
@@ -65,7 +65,7 @@ Monte Carlo sampling under engine="bkmr".}
 
 \item{outcome_type}{Character. "continuous" (Gaussian BKMR, default) or
 "binary" (probit BKMR via family="binomial"). Binary outcome requires
-engine="bkmr". fastBKMR does not support binary outcomes or binary time-dependent confounders in the current Gaussian-only path.}
+engine="bkmr" (fastBKMR does not yet support non-Gaussian outcomes).}
 
 \item{a_probs}{Numeric vector of length 2. Quantile probabilities for
 intervention levels (default: c(0.25, 0.75)).}

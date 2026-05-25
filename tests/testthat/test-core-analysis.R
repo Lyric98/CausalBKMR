@@ -62,7 +62,7 @@ test_that("run_gbkmr_panel rejects sel beyond iter", {
 
   expect_error(
     run_gbkmr_panel(sim_popn = dat, T = 2, p = 2,
-      mediator_basenames = "waist", common_covariates = c("sex", "waist_0"),
+      confounder_basenames = "waist", common_covariates = c("sex", "waist_0"),
       iter = 200, sel = seq(500, 1000, by = 25), n = 30, K = 3),
     "sel contains indices beyond"
   )
@@ -138,8 +138,8 @@ test_that("binary time-varying confounders use probit BKMR models", {
     iter = 100, sel = c(80, 100), n = 50, K = 2,
     n_knots = 10, engine = "bkmr", verbose = FALSE)
 
-  expect_equal(res$call_info$mediator_types[["Lbin"]], "binary")
-  expect_equal(res$raw_results$fit_mediators[[1]][[1]]$family, "binomial")
+  expect_equal(res$call_info$confounder_types[["Lbin"]], "binary")
+  expect_equal(res$raw_results$fit_confounders[[1]][[1]]$family, "binomial")
   expect_true(all(as.vector(res$raw_results$L_samp_a[[1]][[1]]) %in% c(0, 1)))
 })
 
@@ -180,7 +180,7 @@ test_that("time_points equals one falls back to outcome-only BKMR", {
     iter = 100, sel = c(80, 100), n = 40, K = 2,
     n_knots = 10, engine = "bkmr", verbose = FALSE))
 
-  expect_equal(length(res$raw_results$fit_mediators), 0)
+  expect_equal(length(res$raw_results$fit_confounders), 0)
   expect_s3_class(res, "gbkmr_results")
 })
 

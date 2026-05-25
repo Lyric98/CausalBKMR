@@ -7,8 +7,8 @@
 #' @param sim_popn Data frame in g-BKMR format (see \code{\link{prepare_gbkmr_data}}).
 #' @param T Integer. Number of time points (including t=0).
 #' @param p Integer. Number of exposures per time point.
-#' @param mediator_basenames Character vector. Base names for time-dependent confounders.
-#' @param mediator_types Character vector. "continuous" or "binary" for each
+#' @param confounder_basenames Character vector. Base names for time-dependent confounders.
+#' @param confounder_types Character vector. "continuous" or "binary" for each
 #'   time-dependent confounder. Binary time-varying confounders use probit BKMR and Bernoulli
 #'   Monte Carlo sampling under engine="bkmr".
 #' @param common_covariates Character vector. Baseline covariate names.
@@ -39,8 +39,8 @@ run_gbkmr_panel <- function(
     sim_popn,
     T = 5,
     p = 3,
-    mediator_basenames = c("waist"),
-    mediator_types = NULL,
+    confounder_basenames = c("waist"),
+    confounder_types = NULL,
     common_covariates = c("sex", "waist0"),
     currind = 1,
     n = 500,
@@ -70,24 +70,24 @@ run_gbkmr_panel <- function(
   }
   if (max(sel) > max(iter, n_iter)) stop("sel contains indices beyond total MCMC iterations!")
 
-  if (is.null(mediator_types)) {
-    mediator_types <- rep("continuous", length(mediator_basenames))
+  if (is.null(confounder_types)) {
+    confounder_types <- rep("continuous", length(confounder_basenames))
   }
-  if (length(mediator_types) != length(mediator_basenames)) {
-    stop("mediator_types must have the same length as mediator_basenames")
+  if (length(confounder_types) != length(confounder_basenames)) {
+    stop("confounder_types must have the same length as confounder_basenames")
   }
-  if (length(mediator_basenames) == 0L) {
-    mediator_types <- character(0)
+  if (length(confounder_basenames) == 0L) {
+    confounder_types <- character(0)
   } else {
-    mediator_types <- match.arg(mediator_types, c("continuous", "binary"),
+    confounder_types <- match.arg(confounder_types, c("continuous", "binary"),
                                 several.ok = TRUE)
-    names(mediator_types) <- mediator_basenames
+    names(confounder_types) <- confounder_basenames
   }
 
   # fastBKMR's public skmbayes() path is Gaussian-only in the current
   # fbkmr package, so binary outcomes or binary time-varying confounders must use standard BKMR.
   if (engine == "fastbkmr" &&
-      (outcome_type == "binary" || any(mediator_types == "binary"))) {
+      (outcome_type == "binary" || any(confounder_types == "binary"))) {
     stop("Binary outcomes or binary time-varying confounders are not supported ",
          "with engine='fastbkmr'.\n",
          "  fbkmr::skmbayes() uses the Gaussian fast path in the current package.\n",
@@ -152,24 +152,24 @@ run_gbkmr_panel <- function(
   dat_sim <- sim_popn[sample(seq_len(nrow(sim_popn)), n, replace = FALSE), ]
 
   exposure_times <- 0:(T - 1)
-  mediator_times <- if (T > 1) seq_len(T - 1) else integer(0)
+  confounder_times <- if (T > 1) seq_len(T - 1) else integer(0)
   exposure_names_at_t <- function(t) paste0("logM", seq_len(p), "_", t)
   all_exposure_names <- unlist(lapply(exposure_times, exposure_names_at_t),
                                use.names = FALSE)
-  mediator_names_at_t <- function(t) paste0(mediator_basenames, "_", t)
-  all_mediator_names <- unlist(lapply(mediator_times, mediator_names_at_t),
+  confounder_names_at_t <- function(t) paste0(confounder_basenames, "_", t)
+  all_confounder_names <- unlist(lapply(confounder_times, confounder_names_at_t),
                                use.names = FALSE)
 
-  needed_cols <- c("Y", "id", common_covariates, all_exposure_names, all_mediator_names)
+  needed_cols <- c("Y", "id", common_covariates, all_exposure_names, all_confounder_names)
   miss <- setdiff(needed_cols, names(dat_sim))
   if (length(miss) > 0) stop("Missing columns: ", paste(miss, collapse = ", "))
 
   X_common <- as.matrix(dplyr::select(dat_sim, dplyr::all_of(common_covariates)))
   X_predict_common <- matrix(colMeans(X_common), nrow = 1)
-  fitkm_list <- vector("list", length(mediator_times))
-  scaleinfo_list <- vector("list", length(mediator_times))
-  if (length(mediator_times) > 0L) {
-    names(fitkm_list) <- paste0("L", mediator_times)
+  fitkm_list <- vector("list", length(confounder_times))
+  scaleinfo_list <- vector("list", length(confounder_times))
+  if (length(confounder_times) > 0L) {
+    names(fitkm_list) <- paste0("L", confounder_times)
     names(scaleinfo_list) <- names(fitkm_list)
   }
 
@@ -193,14 +193,14 @@ run_gbkmr_panel <- function(
   # =========================================================================
   message("Fitting time-varying confounder models ...")
 
-  for (t in mediator_times) {
-    y_cols <- mediator_names_at_t(t)
+  for (t in confounder_times) {
+    y_cols <- confounder_names_at_t(t)
     y_mat  <- as.matrix(dat_sim[, y_cols, drop = FALSE])
     colnames(y_mat) <- y_cols
 
-    # Z: exposures 0..t-1 + mediators 1..t-1
+    # Z: exposures 0..t-1 + confounders 1..t-1
     Z_names <- unlist(lapply(0:(t - 1), exposure_names_at_t))
-    if (t > 1) Z_names <- c(Z_names, unlist(lapply(1:(t - 1), mediator_names_at_t)))
+    if (t > 1) Z_names <- c(Z_names, unlist(lapply(1:(t - 1), confounder_names_at_t)))
 
     Z_raw <- as.matrix(dplyr::select(dat_sim, dplyr::all_of(Z_names)))
     rows_ok_ZX <- complete.cases(Z_raw, X_common)
@@ -228,13 +228,13 @@ run_gbkmr_panel <- function(
       X_common_fit <- X_common[valid_idx, , drop = FALSE]
       y_vec_fit <- y_vec[valid_idx]
 
-      mediator_family <- if (mediator_types[[li]] == "binary") "binomial" else "gaussian"
+      confounder_family <- if (confounder_types[[li]] == "binary") "binomial" else "gaussian"
       message(sprintf("  L%d: fitting %s [engine=%s, Z=%d cols, n=%d, family=%s]",
                       t, colnames(y_mat)[li], engine, ncol(Z_sc_fit),
-                      length(y_vec_fit), mediator_family))
+                      length(y_vec_fit), confounder_family))
 
       fit_list_t[[li]] <- .fit_model(y_vec_fit, Z_sc_fit, X_common_fit,
-                                      iter, knots_t, family = mediator_family)
+                                      iter, knots_t, family = confounder_family)
     }
     fitkm_list[[t]] <- fit_list_t
   }
@@ -253,7 +253,7 @@ run_gbkmr_panel <- function(
     X_predict_common <- matrix(colMeans(X_common), nrow = 1)
   }
 
-  Zy_names <- c(all_exposure_names, all_mediator_names)
+  Zy_names <- c(all_exposure_names, all_confounder_names)
   Zy_raw   <- as.matrix(dplyr::select(dat_sim, dplyr::all_of(Zy_names)))
   Zy_sc    <- scale(Zy_raw)
   scale_info_y <- list(center = attr(Zy_sc, "scaled:center"),
@@ -279,8 +279,8 @@ run_gbkmr_panel <- function(
   }
 
   # Containers
-  L_samp_a     <- vector("list", length(mediator_times))
-  L_samp_astar <- vector("list", length(mediator_times))
+  L_samp_a     <- vector("list", length(confounder_times))
+  L_samp_astar <- vector("list", length(confounder_times))
 
   scale_like <- function(newZ, center, sc) scale(newZ, center = center, scale = sc)
 
@@ -290,21 +290,21 @@ run_gbkmr_panel <- function(
   message("\n=== Sampling time-varying confounders sequentially ===")
   start_time_global <- proc.time()
 
-  for (t in mediator_times) {
+  for (t in confounder_times) {
     message(sprintf("\n--- Time point t=%d ---", t))
     start_time_t <- proc.time()
 
     Z_names_t <- unlist(lapply(0:(t - 1), exposure_names_at_t))
-    if (t > 1) Z_names_t <- c(Z_names_t, unlist(lapply(1:(t - 1), mediator_names_at_t)))
+    if (t > 1) Z_names_t <- c(Z_names_t, unlist(lapply(1:(t - 1), confounder_names_at_t)))
 
     a_exp_t     <- unlist(lapply(0:(t - 1), function(s) a_vec[exposure_names_at_t(s)]))
     astar_exp_t <- unlist(lapply(0:(t - 1), function(s) astar_vec[exposure_names_at_t(s)]))
 
-    L_samp_a_t     <- vector("list", length(mediator_basenames))
-    L_samp_astar_t <- vector("list", length(mediator_basenames))
+    L_samp_a_t     <- vector("list", length(confounder_basenames))
+    L_samp_astar_t <- vector("list", length(confounder_basenames))
 
-    for (li in seq_along(mediator_basenames)) {
-      message(sprintf("  Sampling %s at t=%d", mediator_basenames[li], t))
+    for (li in seq_along(confounder_basenames)) {
+      message(sprintf("  Sampling %s at t=%d", confounder_basenames[li], t))
 
       fit_li   <- fitkm_list[[t]][[li]]
       scinfo_t <- scaleinfo_list[[t]]
@@ -320,7 +320,7 @@ run_gbkmr_panel <- function(
         } else {
           L_hist_a_blocks <- L_hist_astar_blocks <- list()
           for (tt in 1:(t - 1)) {
-            for (lj in seq_along(mediator_basenames)) {
+            for (lj in seq_along(confounder_basenames)) {
               L_hist_a_blocks[[length(L_hist_a_blocks) + 1]] <- L_samp_a[[tt]][[lj]][j, ]
               L_hist_astar_blocks[[length(L_hist_astar_blocks) + 1]] <- L_samp_astar[[tt]][[lj]][j, ]
             }
@@ -348,7 +348,7 @@ run_gbkmr_panel <- function(
           newz_sc <- scale_like(newz, scinfo_t$center, scinfo_t$scale)
 
           set.seed(j + 10000 + li)
-          if (mediator_types[[li]] == "binary") {
+          if (confounder_types[[li]] == "binary") {
             L_prob <- .sample_pred(fit_li, Znew = newz_sc,
                                    Xnew = X_predict_common, sel_j = sel[j],
                                    type = "response")
@@ -388,16 +388,16 @@ run_gbkmr_panel <- function(
   Yastar_mat <- matrix(NA, nrow = length(sel), ncol = K)
 
   pT     <- length(all_exposure_names)
-  Ltotal <- length(all_mediator_names)
+  Ltotal <- length(all_confounder_names)
 
   for (j in seq_along(sel)) {
     exp_a_block     <- matrix(a_vec[all_exposure_names],     nrow = K, ncol = pT, byrow = TRUE)
     exp_astar_block <- matrix(astar_vec[all_exposure_names], nrow = K, ncol = pT, byrow = TRUE)
 
-    if (length(mediator_times) > 0 && length(mediator_basenames) > 0) {
+    if (length(confounder_times) > 0 && length(confounder_basenames) > 0) {
       L_a_blocks <- L_astar_blocks <- list()
-      for (t in mediator_times) {
-        for (li in seq_along(mediator_basenames)) {
+      for (t in confounder_times) {
+        for (li in seq_along(confounder_basenames)) {
           L_a_blocks[[length(L_a_blocks) + 1]] <- L_samp_a[[t]][[li]][j, ]
           L_astar_blocks[[length(L_astar_blocks) + 1]] <-
             L_samp_astar[[t]][[li]][j, ]
@@ -463,14 +463,14 @@ run_gbkmr_panel <- function(
     Yastar_mat = Yastar_mat,
     L_samp_a = L_samp_a,
     L_samp_astar = L_samp_astar,
-    fit_mediators = fitkm_list,
+    fit_confounders = fitkm_list,
     fit_y = fit_y,
     beta_L = beta_L,
     beta_y = beta_y,
     meta = list(
       T = T, p = p,
-      mediator_basenames = mediator_basenames,
-      mediator_types = mediator_types,
+      confounder_basenames = confounder_basenames,
+      confounder_types = confounder_types,
       common_covariates = common_covariates,
       K = K, sel = sel, iter = iter, n_iter = n_iter,
       n_knots = n_knots, n = n,
@@ -479,7 +479,7 @@ run_gbkmr_panel <- function(
       a_probs = a_probs, a_vals = a_vals, astar_vals = astar_vals,
       a_vec = a_vec, astar_vec = astar_vec,
       exposure_names = all_exposure_names,
-      mediator_names = all_mediator_names,
+      confounder_names = all_confounder_names,
       total_time_minutes = total_time_min
     )
   )
