@@ -4,7 +4,7 @@ test_that("gbkmr_run completes with bkmr engine", {
   n <- 60
   Y <- rnorm(n)
   Z <- matrix(abs(rnorm(n * 6)) + 0.01, n, 6)
-  X <- matrix(rnorm(n * 4), n, 4)
+  X <- matrix(rnorm(n * 3), n, 3)
 
   dat <- prepare_gbkmr_data(Y, Z, X,
     time_points = 3, mixture_components = 2,
@@ -30,7 +30,7 @@ test_that("gbkmr_run completes with fastbkmr engine", {
   n <- 80
   Y <- rnorm(n)
   Z <- matrix(abs(rnorm(n * 6)) + 0.01, n, 6)
-  X <- matrix(rnorm(n * 4), n, 4)
+  X <- matrix(rnorm(n * 3), n, 3)
 
   dat <- prepare_gbkmr_data(Y, Z, X,
     time_points = 3, mixture_components = 2,
@@ -53,7 +53,7 @@ test_that("run_gbkmr_panel rejects sel beyond iter", {
   n <- 40
   Y <- rnorm(n)
   Z <- matrix(abs(rnorm(n * 4)) + 0.01, n, 4)
-  X <- matrix(rnorm(n * 3), n, 3)
+  X <- matrix(rnorm(n * 2), n, 2)
 
   dat <- prepare_gbkmr_data(Y, Z, X,
     time_points = 2, mixture_components = 2,
@@ -61,8 +61,8 @@ test_that("run_gbkmr_panel rejects sel beyond iter", {
     td_covariate_names = "waist", log_transform_mixtures = TRUE)
 
   expect_error(
-    run_gbkmr_panel(sim_popn = dat, T = 2, p = 2,
-      confounder_basenames = "waist", common_covariates = c("sex", "waist_0"),
+      run_gbkmr_panel(sim_popn = dat, T = 2, p = 2,
+      confounder_basenames = "waist", common_covariates = "baseline_1",
       iter = 200, sel = seq(500, 1000, by = 25), n = 30, K = 3),
     "sel contains indices beyond"
   )
@@ -74,7 +74,7 @@ test_that("binary outcome produces probability-scale ATE", {
   n <- 80
   Y <- rbinom(n, 1, 0.4)
   Z <- matrix(abs(rnorm(n * 6)) + 0.01, n, 6)
-  X <- matrix(rnorm(n * 4), n, 4)
+  X <- matrix(rnorm(n * 3), n, 3)
 
   dat <- prepare_gbkmr_data(Y, Z, X,
     time_points = 3, mixture_components = 2,
@@ -101,7 +101,7 @@ test_that("binary outcome with fastbkmr engine errors clearly", {
   n <- 60
   Y <- rbinom(n, 1, 0.4)
   Z <- matrix(abs(rnorm(n * 6)) + 0.01, n, 6)
-  X <- matrix(rnorm(n * 4), n, 4)
+  X <- matrix(rnorm(n * 3), n, 3)
 
   dat <- prepare_gbkmr_data(Y, Z, X,
     time_points = 3, mixture_components = 2,
@@ -126,7 +126,7 @@ test_that("binary time-varying confounders use probit BKMR models", {
   Z <- matrix(abs(rnorm(n * 4)) + 0.01, n, 4)
   L0 <- rbinom(n, 1, 0.5)
   L1 <- rbinom(n, 1, plogis(-0.2 + 0.5 * L0 + 0.2 * Z[, 1]))
-  X <- cbind(L0, L1, sex = rbinom(n, 1, 0.5))
+  X <- cbind(L1, baseline = rbinom(n, 1, 0.5))
 
   dat <- prepare_gbkmr_data(Y, Z, X,
     time_points = 2, mixture_components = 2,
@@ -148,7 +148,7 @@ test_that("binary time-varying confounders reject fastbkmr engine", {
   n <- 40
   Y <- rnorm(n)
   Z <- matrix(abs(rnorm(n * 4)) + 0.01, n, 4)
-  X <- cbind(rbinom(n, 1, 0.5), rbinom(n, 1, 0.5), rbinom(n, 1, 0.5))
+  X <- cbind(rbinom(n, 1, 0.5), rbinom(n, 1, 0.5))
 
   dat <- prepare_gbkmr_data(Y, Z, X,
     time_points = 2, mixture_components = 2,
@@ -190,7 +190,7 @@ test_that("convergence diagnostics are returned", {
   n <- 60
   Y <- rnorm(n)
   Z <- matrix(abs(rnorm(n * 6)) + 0.01, n, 6)
-  X <- matrix(rnorm(n * 4), n, 4)
+  X <- matrix(rnorm(n * 3), n, 3)
 
   dat <- prepare_gbkmr_data(Y, Z, X,
     time_points = 3, mixture_components = 2,
@@ -214,7 +214,7 @@ test_that("print and summary methods work", {
   n <- 60
   Y <- rnorm(n)
   Z <- matrix(abs(rnorm(n * 6)) + 0.01, n, 6)
-  X <- matrix(rnorm(n * 4), n, 4)
+  X <- matrix(rnorm(n * 3), n, 3)
 
   dat <- prepare_gbkmr_data(Y, Z, X,
     time_points = 3, mixture_components = 2,

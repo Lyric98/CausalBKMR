@@ -3,7 +3,7 @@ title: "Large Samples with fastBKMR"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{gbkmr_example_fastbkmr}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEngine{knitr::rmarkdown_notangle}
   %\VignetteEncoding{UTF-8}
 ---
 

@@ -41,7 +41,7 @@ run_gbkmr_panel <- function(
     p = 3,
     confounder_basenames = c("waist"),
     confounder_types = NULL,
-    common_covariates = c("sex", "waist0"),
+    common_covariates = "baseline_1",
     currind = 1,
     n = 500,
     K = 1000,
@@ -152,7 +152,7 @@ run_gbkmr_panel <- function(
   dat_sim <- sim_popn[sample(seq_len(nrow(sim_popn)), n, replace = FALSE), ]
 
   exposure_times <- 0:(T - 1)
-  confounder_times <- if (T > 1) seq_len(T - 1) else integer(0)
+  confounder_times <- if (T > 1) seq_len(T - 1L) else integer(0)
   exposure_names_at_t <- function(t) paste0("logM", seq_len(p), "_", t)
   all_exposure_names <- unlist(lapply(exposure_times, exposure_names_at_t),
                                use.names = FALSE)
@@ -319,7 +319,7 @@ run_gbkmr_panel <- function(
           L_hist_astar_j <- NULL
         } else {
           L_hist_a_blocks <- L_hist_astar_blocks <- list()
-          for (tt in 1:(t - 1)) {
+          for (tt in seq_len(t - 1L)) {
             for (lj in seq_along(confounder_basenames)) {
               L_hist_a_blocks[[length(L_hist_a_blocks) + 1]] <- L_samp_a[[tt]][[lj]][j, ]
               L_hist_astar_blocks[[length(L_hist_astar_blocks) + 1]] <- L_samp_astar[[tt]][[lj]][j, ]

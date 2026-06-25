@@ -10,7 +10,7 @@
 #'
 #' @param Y Numeric vector. Outcome variable (length n).
 #' @param Z Numeric matrix. Mixture exposure matrix (n x (Adim x T)).
-#' @param X Numeric matrix. Covariate matrix (n x (Ldim x T + baseline_covs)).
+#' @param X Numeric matrix. Covariate matrix (n x (Ldim x (T - 1) + baseline_covs)).
 #' @param T Integer. Number of time points.
 #' @param Adim Integer. Number of mixture components per time point.
 #' @param Ldim Integer. Number of time-dependent covariates per time point.
@@ -32,7 +32,7 @@
 #' n <- 100
 #' Y <- rnorm(n)
 #' Z <- matrix(rnorm(n * 6), nrow = n, ncol = 6)  # 2 metals x 3 time points
-#' X <- matrix(rnorm(n * 5), nrow = n, ncol = 5)  # 1 TD cov x 3 time points + 2 baseline
+#' X <- matrix(rnorm(n * 4), nrow = n, ncol = 4)  # 1 TD cov x 2 post-baseline times + 2 baseline
 #'
 #' validate_user_matrices(Y, Z, X, T = 3, Adim = 2, Ldim = 1, n_baseline = 2)
 #' }
@@ -56,15 +56,11 @@ validate_user_matrices <- function(Y, Z, X, T, Adim, Ldim, n_baseline) {
   if (T < 1) stop("time_points must be >= 1")
   if (Adim < 1) stop("mixture_components must be >= 1")
   if (Ldim < 0) stop("td_covariates must be >= 0")
-  if (T > 1 && Ldim < 1) {
-    stop("td_covariates must be >= 1 when time_points > 1 for g-BKMR.\n",
-         "For single-time BKMR fallback, use time_points = 1.")
-  }
-  if (n_baseline < 0) stop("baseline_covariates must be >= 0")
+  if (n_baseline < 1) stop("baseline_covariates must be >= 1")
 
   # Matrix dimension checks
   expected_Z_cols <- Adim * T
-  expected_X_cols <- Ldim * T + n_baseline
+  expected_X_cols <- Ldim * (T - 1) + n_baseline
 
   if (ncol(Z) != expected_Z_cols) {
     stop("Z matrix dimension error!\n",
@@ -74,7 +70,7 @@ validate_user_matrices <- function(Y, Z, X, T, Adim, Ldim, n_baseline) {
 
   if (ncol(X) != expected_X_cols) {
     stop("X matrix dimension error!\n",
-         "Expected: ", expected_X_cols, " columns (", Ldim, " TD covariates x ", T, " time points + ", n_baseline, " baseline covariates)\n",
+         "Expected: ", expected_X_cols, " columns (", Ldim, " TD covariates x ", T - 1, " post-baseline time points + ", n_baseline, " baseline covariates)\n",
          "Actual: ", ncol(X), " columns")
   }
 

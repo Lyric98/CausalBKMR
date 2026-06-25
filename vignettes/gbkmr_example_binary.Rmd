@@ -3,7 +3,7 @@ title: "Binary Outcomes"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{gbkmr_example_binary}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEngine{knitr::rmarkdown_notangle}
   %\VignetteEncoding{UTF-8}
 ---
 
@@ -29,8 +29,8 @@ covariate, the raw matrices are:
 - `Y`: length `n` binary vector with values 0 or 1.
 - `Z`: `n x 6` matrix ordered as exposure 1 to 2 at time 0, then time 1,
   then time 2.
-- `X`: `n x 4` matrix with the three time-varying covariate columns first
-  and the baseline covariate column last.
+- `X`: `n x 3` matrix with the two post-baseline time-varying covariate
+  columns first and the baseline covariate column last.
 
 ```{r simulate-binary, purl=FALSE}
 library(causalBKMR)
@@ -42,20 +42,19 @@ p <- 2
 Ldim <- 1
 B <- 1
 
-sex <- rbinom(n, 1, 0.5)
-waist_0 <- rnorm(n, 85, 12)
+baseline_1 <- rbinom(n, 1, 0.5)
+waist_base <- rnorm(n, 85, 12)
 
 Z <- matrix(rlnorm(n * p * T_points, meanlog = 1, sdlog = 0.5),
             nrow = n)
 
-waist_t0 <- waist_0 + 0.10 * Z[, 1] + rnorm(n, 0, 2)
-waist_t1 <- waist_t0 + 0.10 * Z[, 3] + rnorm(n, 0, 2)
+waist_t1 <- waist_base + 0.10 * Z[, 3] + rnorm(n, 0, 2)
 waist_t2 <- waist_t1 + 0.10 * Z[, 5] + rnorm(n, 0, 2)
 
-X <- cbind(waist_t0, waist_t1, waist_t2, sex)
+X <- cbind(waist_t1, waist_t2, baseline_1)
 
 linpred <- -3 +
-  0.40 * sex +
+  0.40 * baseline_1 +
   0.02 * waist_t2 +
   0.20 * log1p(Z[, 5]) +
   0.20 * log1p(Z[, 6])

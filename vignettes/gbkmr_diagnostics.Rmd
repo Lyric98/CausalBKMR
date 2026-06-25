@@ -3,7 +3,7 @@ title: "Diagnostics and Troubleshooting"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{gbkmr_diagnostics}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEngine{knitr::rmarkdown_notangle}
   %\VignetteEncoding{UTF-8}
 ---
 

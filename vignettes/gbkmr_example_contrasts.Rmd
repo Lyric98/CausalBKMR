@@ -3,7 +3,7 @@ title: "Custom Intervention Contrasts"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{gbkmr_example_contrasts}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEngine{knitr::rmarkdown_notangle}
   %\VignetteEncoding{UTF-8}
 ---
 
@@ -107,8 +107,8 @@ Only mixture columns belong in `a_vals` and `astar_vals`. Do not include
 baseline covariates or time-varying confounders:
 
 ```{r wrong, purl=FALSE}
-# Wrong: waist_0 is a confounder, not a mixture exposure.
-a_wrong <- c(logM1_0 = 0, logM2_0 = 0, waist_0 = 80)
+# Wrong: baseline_1 is a confounder, not a mixture exposure.
+a_wrong <- c(logM1_0 = 0, logM2_0 = 0, baseline_1 = 80)
 ```
 
 Changing confounders inside the intervention vector would change the

@@ -22,7 +22,7 @@ prepare_gbkmr_data(
 
 \item{Z}{Numeric matrix. Mixture exposure matrix (n x (Adim x T)).}
 
-\item{X}{Numeric matrix. Covariate matrix (n x (Ldim x T + baseline_covs)).}
+\item{X}{Numeric matrix. Covariate matrix (n x (Ldim x (T - 1) + baseline_covs)).}
 
 \item{time_points}{Integer. Number of time points (T).}
 
@@ -59,9 +59,7 @@ The function expects matrices organized as follows:
 
 The output data frame has the following structure:
 \itemize{
-\item sex: First baseline covariate (required by g-BKMR format)
-\item baseline_2, baseline_3, ...: Additional baseline covariates
-\item td_covariate1_0, td_covariate2_0, ...: Baseline time-dependent covariates
+\item baseline_1, baseline_2, ...: Baseline covariates
 \item logM1_0, logM2_0, ...: Mixture exposures at time 0
 \item logM1_1, logM2_1, ...: Mixture exposures at time 1
 \item td_covariate1_1, td_covariate2_1, ...: Time-dependent covariates at time 1
@@ -75,7 +73,7 @@ The output data frame has the following structure:
 n <- 200
 Y <- rnorm(n)
 Z <- matrix(rlnorm(n * 6), nrow = n, ncol = 6)  # 2 metals x 3 time points
-X <- matrix(rnorm(n * 8), nrow = n, ncol = 8)   # 2 TD covs x 3 time points + 2 baseline
+X <- matrix(rnorm(n * 6), nrow = n, ncol = 6)   # 2 TD covs x 2 post-baseline times + 2 baseline
 
 # Prepare data
 prepared_data <- prepare_gbkmr_data(

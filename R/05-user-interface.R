@@ -131,9 +131,7 @@ print_input_audit <- function(data, outcome, outcome_type, time_points,
     cat(sprintf("  Names:                   %s\n",
                 paste(detection$td_covariate_names, collapse = ", ")))
     for (nm in detection$td_covariate_names) {
-      # Detect type using all time-indexed instances (e.g., bmi_0, bmi_1, ...)
-      cols <- intersect(paste0(nm, "_", seq.int(0L, time_points - 1L)),
-                        names(data))
+      cols <- grep(paste0("^", nm, "_\\d+$"), names(data), value = TRUE)
       if (length(cols) > 0L) {
         t <- detect_variable_type(unlist(data[, cols]))
         cat(sprintf("    - %-20s type: %s\n", nm, t))
@@ -148,7 +146,7 @@ print_input_audit <- function(data, outcome, outcome_type, time_points,
 
   # --- Baseline covariates ---
   cat("\n[Baseline covariates]\n")
-  baseline_vars <- c("sex", detection$baseline_td_vars)
+  baseline_vars <- detection$baseline_vars
   cat(sprintf("  Variables: %s\n", paste(baseline_vars, collapse = ", ")))
   cat("  Role:      linear term X*beta (NOT in kernel h())\n")
 
@@ -252,8 +250,7 @@ gbkmr_run <- function(
   if (detection$Ldim > 0L) {
     for (i in seq_along(detection$td_covariate_names)) {
       nm <- detection$td_covariate_names[i]
-      cols <- intersect(paste0(nm, "_", seq.int(0L, time_points - 1L)),
-                        names(data))
+      cols <- grep(paste0("^", nm, "_\\d+$"), names(data), value = TRUE)
       if (length(cols) > 0L && detect_variable_type(unlist(data[, cols, drop = FALSE])) == "binary") {
         binary_td <- c(binary_td, nm)
         confounder_types[i] <- "binary"
@@ -319,7 +316,7 @@ gbkmr_run <- function(
     p = detection$p,
     confounder_basenames = detection$td_covariate_names,
     confounder_types = confounder_types,
-    common_covariates = c("sex", detection$baseline_td_vars),
+    common_covariates = detection$baseline_vars,
     currind = currind,
     sel = sel,
     n = n,
@@ -368,6 +365,7 @@ gbkmr_run <- function(
       outcome = outcome,
       outcome_type = outcome_type,
       time_points = time_points,
+      baseline_vars = detection$baseline_vars,
       sample_size = n,
       mcmc_iterations = iter,
       engine = engine,
@@ -438,7 +436,7 @@ print_output_summary <- function(results, detection) {
     cat(" none (no time-varying confounders)\n")
   } else {
     cat("\n")
-    for (t in 1:(T_total - 1)) {
+    for (t in seq_len(T_total - 1L)) {
       for (l in seq_along(detection$td_covariate_names)) {
         confounder_family <- if (confounder_types[[l]] == "binary") {
           "probit BKMR (family='binomial')"

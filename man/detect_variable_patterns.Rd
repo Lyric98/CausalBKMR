@@ -19,7 +19,8 @@ A list containing the detected variable structure:
 \item{Ldim}{Integer. Number of time-dependent covariates per time point}
 \item{td_covariate_names}{Character vector. Names of time-dependent covariates}
 \item{detected_pattern}{Character. Pattern used for detection}
-\item{baseline_td_vars}{Character vector. Baseline time-dependent variables}
+\item{baseline_vars}{Character vector. Baseline covariates}
+\item{baseline_td_vars}{Character vector. Deprecated; always empty}
 \item{td_vars_by_time}{List. Time-dependent variables for each time point}
 }
 }
@@ -33,13 +34,8 @@ time-dependent covariate variables in prepared g-BKMR data. This function
 is essential for the automated analysis pipeline.
 }
 \details{
-The function recognizes several naming patterns for time-dependent covariates:
-\itemize{
-\item \strong{known_with_underscore}: bmi_0, bp_0, bmi_1, bp_1, etc.
-\item \strong{known_ending_zero}: bmi0, bp0, bmi1, bp1, etc.
-\item \strong{generated_format}: waist0_1, waist0_2, waist1_1, waist1_2, etc.
-\item \strong{generic_format}: td_covariate1_0, td_covariate2_0, etc.
-}
+The function recognizes post-baseline time-dependent covariates named
+\code{name_1}, \code{name_2}, ..., \code{name_(T-1)}.
 
 For exposure variables, it looks for the pattern: logM1_0, logM2_0, logM1_1, logM2_1, etc.
 }
@@ -48,9 +44,7 @@ For exposure variables, it looks for the pattern: logM1_0, logM2_0, logM1_1, log
 # Create test data in g-BKMR format
 test_data <- data.frame(
   id = 1:100,
-  sex = rbinom(100, 1, 0.5),
-  bmi_0 = rnorm(100, 25, 3),
-  bp_0 = rnorm(100, 120, 15),
+  baseline_1 = rbinom(100, 1, 0.5),
   logM1_0 = rnorm(100, 0, 1),
   logM2_0 = rnorm(100, 0, 1),
   logM1_1 = rnorm(100, 0, 1),

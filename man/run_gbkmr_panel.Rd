@@ -10,7 +10,7 @@ run_gbkmr_panel(
   p = 3,
   confounder_basenames = c("waist"),
   confounder_types = NULL,
-  common_covariates = c("sex", "waist0"),
+  common_covariates = "baseline_1",
   currind = 1,
   n = 500,
   K = 1000,

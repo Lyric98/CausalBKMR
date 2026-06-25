@@ -3,7 +3,7 @@ title: "Quick Start: Current causalBKMR API"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{gbkmr_quickstart}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEngine{knitr::rmarkdown_notangle}
   %\VignetteEncoding{UTF-8}
 ---
 
@@ -31,12 +31,11 @@ covariates, and `B` baseline covariates, the current API expects:
 |--------|-------|----------|
 | `Y` | `n` vector | final outcome |
 | `Z` | `n x (p * T)` matrix | `M1_t0, M2_t0, ..., M1_t1, ...` |
-| `X` | `n x (Ldim * T + B)` matrix | all time-varying covariate columns first, then baseline columns |
+| `X` | `n x (Ldim * (T - 1) + B)` matrix | post-baseline time-varying covariate columns first, then baseline columns |
 
 `prepare_gbkmr_data()` writes mixture columns as `logM1_0`, `logM2_0`,
-..., and time-varying covariates as `<name>_0`, `<name>_1`, ....
-The first baseline column is named `sex`; additional baseline columns
-are named `baseline_2`, `baseline_3`, ....
+..., time-varying covariates as `<name>_1`, `<name>_2`, ..., and
+baseline covariates as `baseline_1`, `baseline_2`, ....
 
 ## Simulate Data
 
@@ -50,19 +49,18 @@ p <- 2
 Ldim <- 1
 B <- 1
 
-sex <- rbinom(n, 1, 0.5)
-waist0 <- rnorm(n, 85, 12)
+baseline_1 <- rbinom(n, 1, 0.5)
+waist_base <- rnorm(n, 85, 12)
 
 Z <- matrix(rlnorm(n * p * T_points, meanlog = 1, sdlog = 0.5),
             nrow = n, ncol = p * T_points)
 
-waist_t0 <- waist0
-waist_t1 <- waist0 + 0.4 * log(Z[, 1]) + rnorm(n, 0, 2)
+waist_t1 <- waist_base + 0.4 * log(Z[, 1]) + rnorm(n, 0, 2)
 waist_t2 <- waist_t1 + 0.3 * log(Z[, 3]) + rnorm(n, 0, 2)
-X <- cbind(waist_t0, waist_t1, waist_t2, sex)
+X <- cbind(waist_t1, waist_t2, baseline_1)
 
 Y <- 50 +
-  0.5 * sex +
+  0.5 * baseline_1 +
   0.15 * waist_t2 +
   0.8 * log(Z[, 5]) -
   0.4 * log(Z[, 6]) +
@@ -91,8 +89,7 @@ head(prepared)
 Expected columns include:
 
 ```text
-sex
-waist_0
+baseline_1
 logM1_0 logM2_0 logM1_1 logM2_1 logM1_2 logM2_2
 waist_1 waist_2
 Y

@@ -3,7 +3,7 @@ title: "Methodology and Current Implementation"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{gbkmr_method_overview}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEngine{knitr::rmarkdown_notangle}
   %\VignetteEncoding{UTF-8}
 ---
 
@@ -41,10 +41,10 @@ The user supplies three objects:
 |--------|-------|---------|
 | `Y` | length `n` | Continuous or binary outcome |
 | `Z` | `n x (p * T)` | Mixture exposures ordered by time |
-| `X` | `n x (Ldim * T + B)` | Time-varying covariates first, baseline covariates last |
+| `X` | `n x (Ldim * (T - 1) + B)` | Post-baseline time-varying covariates first, baseline covariates last |
 
 `prepare_gbkmr_data()` converts those objects into a wide data frame with
-columns such as `logM1_0`, `logM2_0`, `waist_0`, `logM1_1`, and `Y`.
+columns such as `baseline_1`, `logM1_0`, `logM2_0`, `waist_1`, and `Y`.
 
 ```{r prepare-example, purl=FALSE}
 prepared <- prepare_gbkmr_data(
