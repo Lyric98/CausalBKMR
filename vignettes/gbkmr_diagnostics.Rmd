@@ -65,11 +65,33 @@ sample size, and intervention contrast.
 
 ## Inspect Stored Diagnostics
 
-The result object stores convergence diagnostics when available.
+The result object stores convergence diagnostics for each fitted BKMR
+model.
 
 ```{r stored-diagnostics, purl=FALSE}
 fit$diagnostics
 ```
+
+Each entry corresponds to one model. `outcome_Y` is the final outcome
+BKMR model. Entries such as `confounder_t1_1` are time-dependent
+confounder models; the name means the first confounder model at visit
+`t = 1`.
+
+The current diagnostics are computed from the posterior draws of the
+linear covariate coefficients (`beta`) in each BKMR fit:
+
+- `ess`: minimum effective sample size across the beta MCMC chains. ESS
+  is the approximate number of independent posterior draws after
+  accounting for autocorrelation. Larger values are better; values below
+  100 are flagged as `low_ess`.
+- `geweke_max_abs`: maximum absolute Geweke z-score across beta chains.
+  This compares early and late parts of a chain. Values above 2.5 are
+  flagged as `geweke_nonstationary`.
+- `warning_flags`: a character vector of flags. An empty vector means no
+  issue was found by these quick checks.
+
+These are quick screening diagnostics, not a full MCMC review. They
+should be used together with trace plots and posterior summary plots.
 
 If warnings appear, rerun with more iterations and a later posterior
 selection window:
@@ -129,6 +151,136 @@ for (i in seq_along(fit_list)) {
 Long trends, abrupt jumps, or chains that remain stuck for long periods
 are signs that the run needs more iterations or a different `sel`
 window.
+
+## BKMR Summary Plots
+
+`gbkmr_run()` stores the fitted BKMR objects under `fit$raw_results`.
+This means the usual `bkmr` summary functions can be used directly for
+the outcome model and for each time-dependent confounder model.
+
+The examples below use the standard BKMR engine. If `engine = "fastbkmr"`,
+the stored fit is a list of subset fits; inspect one subset at a time or
+loop over subsets.
+
+```{r bkmr-plot-helpers, purl=FALSE}
+first_bkmrfit <- function(x) {
+  if (is.list(x) && !inherits(x, "bkmrfit")) x[[1]] else x
+}
+
+fit_z_names <- function(fit_object, fallback_prefix = "Z") {
+  out <- colnames(fit_object$Z)
+  if (is.null(out)) out <- paste0(fallback_prefix, seq_len(ncol(fit_object$Z)))
+  out
+}
+
+sel <- fit$raw_results$meta$sel
+```
+
+For the outcome model, `raw_results$fit_y` is the BKMR fit for `Y`. Its
+kernel predictors include all mixture exposure columns and the modeled
+time-dependent confounder history. Baseline covariates are in the linear
+`X` part of the BKMR model, not in the kernel `h()`.
+
+```{r outcome-summary-plots, purl=FALSE}
+outcome_fit <- first_bkmrfit(fit$raw_results$fit_y)
+
+outcome_z_names <- c(
+  fit$raw_results$meta$exposure_names,
+  fit$raw_results$meta$confounder_names
+)
+if (length(outcome_z_names) != ncol(outcome_fit$Z)) {
+  outcome_z_names <- fit_z_names(outcome_fit)
+}
+
+pips_y <- bkmr::ExtractPIPs(outcome_fit, sel = sel, z.names = outcome_z_names)
+barplot(setNames(pips_y$PIP, pips_y$variable),
+        las = 2, ylab = "Posterior inclusion probability",
+        main = "Outcome model PIPs")
+
+pr_y <- bkmr::PredictorResponseUnivar(
+  fit = outcome_fit,
+  Z = outcome_fit$Z,
+  X = outcome_fit$X,
+  sel = sel,
+  z.names = outcome_z_names
+)
+
+one_var <- as.character(pr_y$variable[1])
+pr_one <- pr_y[pr_y$variable == one_var, ]
+plot(pr_one$z, pr_one$est, type = "l",
+     xlab = one_var, ylab = "Estimated h contribution",
+     main = paste("Outcome model:", one_var))
+lines(pr_one$z, pr_one$est + 1.96 * pr_one$se, lty = 2)
+lines(pr_one$z, pr_one$est - 1.96 * pr_one$se, lty = 2)
+
+overall_y <- bkmr::OverallRiskSummaries(
+  fit = outcome_fit,
+  Z = outcome_fit$Z,
+  X = outcome_fit$X,
+  sel = sel,
+  qs = seq(0.25, 0.75, by = 0.05)
+)
+plot(overall_y$quantile, overall_y$est, type = "b",
+     xlab = "Joint mixture quantile",
+     ylab = "Difference in h from median mixture",
+     main = "Outcome model overall mixture summary")
+lines(overall_y$quantile, overall_y$est + 1.96 * overall_y$sd, lty = 2)
+lines(overall_y$quantile, overall_y$est - 1.96 * overall_y$sd, lty = 2)
+```
+
+For time-dependent confounder models, `raw_results$fit_confounders[[t]][[l]]`
+is the BKMR model for the `l`th time-dependent confounder at follow-up
+visit `t`. Its kernel predictors are the exposure and confounder history
+available before that confounder is generated.
+
+```{r confounder-summary-plots, purl=FALSE}
+confounder_fit <- first_bkmrfit(fit$raw_results$fit_confounders[[1]][[1]])
+confounder_z_names <- fit_z_names(confounder_fit)
+
+pips_l <- bkmr::ExtractPIPs(
+  confounder_fit,
+  sel = sel,
+  z.names = confounder_z_names
+)
+barplot(setNames(pips_l$PIP, pips_l$variable),
+        las = 2, ylab = "Posterior inclusion probability",
+        main = "Time-dependent confounder model PIPs")
+
+pr_l <- bkmr::PredictorResponseUnivar(
+  fit = confounder_fit,
+  Z = confounder_fit$Z,
+  X = confounder_fit$X,
+  sel = sel,
+  z.names = confounder_z_names
+)
+
+one_l_var <- as.character(pr_l$variable[1])
+pr_l_one <- pr_l[pr_l$variable == one_l_var, ]
+plot(pr_l_one$z, pr_l_one$est, type = "l",
+     xlab = one_l_var, ylab = "Estimated h contribution",
+     main = paste("Confounder model:", one_l_var))
+lines(pr_l_one$z, pr_l_one$est + 1.96 * pr_l_one$se, lty = 2)
+lines(pr_l_one$z, pr_l_one$est - 1.96 * pr_l_one$se, lty = 2)
+```
+
+To review all time-dependent confounder fits, loop over the nested list:
+
+```{r all-confounder-fits, purl=FALSE}
+for (tt in seq_along(fit$raw_results$fit_confounders)) {
+  for (ll in seq_along(fit$raw_results$fit_confounders[[tt]])) {
+    conf_fit <- first_bkmrfit(fit$raw_results$fit_confounders[[tt]][[ll]])
+    z_names <- fit_z_names(conf_fit)
+    print(bkmr::ExtractPIPs(conf_fit, sel = sel, z.names = z_names))
+    bkmr::TracePlot(conf_fit, par = "beta", sel = sel,
+                    main = paste("confounder t", tt, "model", ll))
+  }
+}
+```
+
+For binary outcomes or binary time-dependent confounders, these BKMR
+summary plots describe the fitted probit/link-scale `h()` function. The
+reported causal effect from `gbkmr_run()` is still returned on the
+probability scale for binary outcomes.
 
 ## Causal Effect Draws
 

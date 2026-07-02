@@ -13,7 +13,7 @@
 #'   Monte Carlo sampling under engine="bkmr".
 #' @param common_covariates Character vector. Baseline covariate names.
 #' @param currind Integer. Random seed.
-#' @param n Integer. Sample size for analysis.
+#' @param n Integer or NULL. Sample size for analysis. If NULL, all rows are used.
 #' @param K Integer. Monte Carlo samples for g-computation.
 #' @param sel Numeric vector. Post-burn-in MCMC indices for inference.
 #' @param iter Integer. MCMC iterations for time-varying confounder models.
@@ -43,7 +43,7 @@ run_gbkmr_panel <- function(
     confounder_types = NULL,
     common_covariates = "baseline_1",
     currind = 1,
-    n = 500,
+    n = NULL,
     K = 1000,
     sel = seq(22000, 24000, by = 25),
     iter = 24000,
@@ -64,6 +64,11 @@ run_gbkmr_panel <- function(
   if (is.null(n_iter)) n_iter <- iter
   if (!"Y" %in% names(sim_popn)) stop("Data must contain outcome variable 'Y'")
   if (!"id" %in% names(sim_popn)) stop("Data must contain 'id' column")
+  if (is.null(n)) n <- nrow(sim_popn)
+  if (!is.numeric(n) || length(n) != 1L || !is.finite(n) || n < 1) {
+    stop("n must be a positive integer or NULL.")
+  }
+  n <- as.integer(n)
   if (n > nrow(sim_popn)) {
     warning("n larger than data; using all rows.")
     n <- nrow(sim_popn)

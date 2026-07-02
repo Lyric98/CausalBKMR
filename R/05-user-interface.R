@@ -27,9 +27,9 @@ detect_variable_type <- function(x) {
 #'   a data.frame of per-parameter diagnostics plus an overall flag.
 #' @param fit A bkmrfit object, or a list of bkmrfit objects (fastBKMR).
 #' @param sel_idx Integer vector of post-burn-in indices to use.
-#' @return A list with: `ess` (min effective sample size across betas),
-#'   `geweke_max_abs` (max absolute Geweke z-score across betas),
-#'   `warning_flags` (character vector of issues found, or NULL if OK).
+#' @return A list with: `ess` (minimum effective sample size across beta
+#'   MCMC chains), `geweke_max_abs` (maximum absolute Geweke z-score across
+#'   beta chains), and `warning_flags` (character vector of issues found).
 #' @keywords internal
 check_convergence <- function(fit, sel_idx) {
   if (is.list(fit) && !inherits(fit, "bkmrfit")) {
@@ -188,7 +188,8 @@ print_input_audit <- function(data, outcome, outcome_type, time_points,
 #' @param time_points Integer. Number of time points.
 #' @param currind Integer. Random seed.
 #' @param sel Numeric vector. Post-burn-in MCMC indices (auto-calculated if NULL).
-#' @param n Integer. Sample size (default: min(500, nrow(data))).
+#' @param n Integer or NULL. Sample size. If NULL (default), all rows in
+#'   `data` are used.
 #' @param K Integer. Monte Carlo samples.
 #' @param iter Integer. Total MCMC iterations.
 #' @param n_knots Integer. Knots for kernel approximation.
@@ -235,7 +236,11 @@ gbkmr_run <- function(
   if (!outcome %in% names(data)) stop("Outcome variable '", outcome, "' not found in data")
 
   if (is.null(sel)) sel <- seq(floor(iter * 0.6), iter, by = 25)
-  if (is.null(n)) n <- min(500, nrow(data))
+  if (is.null(n)) n <- nrow(data)
+  if (!is.numeric(n) || length(n) != 1L || !is.finite(n) || n < 1) {
+    stop("n must be a positive integer or NULL.")
+  }
+  n <- as.integer(n)
 
   # Detect variable structure
   detection <- detect_variable_patterns(data, time_points)
@@ -467,6 +472,8 @@ print_output_summary <- function(results, detection) {
 
   # --- Convergence ---
   cat("\n[Convergence check]\n")
+  cat("  ESS = effective sample size for beta MCMC draws; larger is better.\n")
+  cat("  Geweke |z| compares early and late chain means; values > 2.5 are flagged.\n")
   any_warn <- FALSE
   for (nm in names(results$diagnostics)) {
     d <- results$diagnostics[[nm]]

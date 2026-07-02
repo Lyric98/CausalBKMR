@@ -12,9 +12,9 @@ check_convergence(fit, sel_idx)
 \item{sel_idx}{Integer vector of post-burn-in indices to use.}
 }
 \value{
-A list with: \code{ess} (min effective sample size across betas),
-\code{geweke_max_abs} (max absolute Geweke z-score across betas),
-\code{warning_flags} (character vector of issues found, or NULL if OK).
+A list with: \code{ess} (minimum effective sample size across beta
+MCMC chains), \code{geweke_max_abs} (maximum absolute Geweke z-score across
+beta chains), and \code{warning_flags} (character vector of issues found).
 }
 \description{
 Computes two standard MCMC diagnostics for the beta parameters

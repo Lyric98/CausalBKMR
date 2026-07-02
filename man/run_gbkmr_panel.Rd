@@ -12,7 +12,7 @@ run_gbkmr_panel(
   confounder_types = NULL,
   common_covariates = "baseline_1",
   currind = 1,
-  n = 500,
+  n = NULL,
   K = 1000,
   sel = seq(22000, 24000, by = 25),
   iter = 24000,
@@ -45,7 +45,7 @@ Monte Carlo sampling under engine="bkmr".}
 
 \item{currind}{Integer. Random seed.}
 
-\item{n}{Integer. Sample size for analysis.}
+\item{n}{Integer or NULL. Sample size for analysis. If NULL, all rows are used.}
 
 \item{K}{Integer. Monte Carlo samples for g-computation.}
 

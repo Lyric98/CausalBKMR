@@ -37,7 +37,8 @@ gbkmr_run(
 
 \item{sel}{Numeric vector. Post-burn-in MCMC indices (auto-calculated if NULL).}
 
-\item{n}{Integer. Sample size (default: min(500, nrow(data))).}
+\item{n}{Integer or NULL. Sample size. If NULL (default), all rows in
+\code{data} are used.}
 
 \item{K}{Integer. Monte Carlo samples.}
 

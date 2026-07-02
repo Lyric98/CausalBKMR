@@ -184,6 +184,28 @@ test_that("time_points equals one falls back to outcome-only BKMR", {
   expect_s3_class(res, "gbkmr_results")
 })
 
+test_that("gbkmr_run defaults to all rows when n is NULL", {
+  skip_if_not_installed("bkmr")
+  set.seed(11)
+  n <- 35
+  Y <- rnorm(n)
+  Z <- matrix(abs(rnorm(n * 4)) + 0.01, n, 4)
+  X <- matrix(rnorm(n * 2), n, 2)
+
+  dat <- prepare_gbkmr_data(Y, Z, X,
+    time_points = 2, mixture_components = 2,
+    td_covariates = 1, baseline_covariates = 1,
+    td_covariate_names = "waist", log_transform_mixtures = TRUE)
+
+  res <- gbkmr_run(
+    data = dat, outcome_type = "continuous", time_points = 2,
+    iter = 100, sel = c(80, 100), K = 2,
+    n_knots = 10, engine = "bkmr", verbose = FALSE)
+
+  expect_equal(res$call_info$sample_size, nrow(dat))
+  expect_equal(res$raw_results$meta$n, nrow(dat))
+})
+
 test_that("convergence diagnostics are returned", {
   skip_if_not_installed("bkmr")
   set.seed(42)
