@@ -1,8 +1,4 @@
-#' @file 02-data-preparation.R
-#' @title Data preparation and formatting for g-BKMR
-#' @importFrom stats sd
-#' @description Functions to convert user data into the wide-format data structure
-#' required for g-BKMR analysis. Handles variable naming, transformations, and metadata.
+# Data preparation and formatting for g-BKMR
 
 #' Prepare user matrices for g-BKMR analysis
 #'
@@ -63,6 +59,7 @@
 #' head(prepared_data)
 #' }
 #'
+#' @importFrom stats sd
 #' @export
 prepare_gbkmr_data <- function(
     Y,                     # Outcome vector (length n)

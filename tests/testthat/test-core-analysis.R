@@ -45,6 +45,12 @@ test_that("gbkmr_run completes with fastbkmr engine", {
   expect_s3_class(res, "gbkmr_results")
   expect_true(is.numeric(res$causal_effect$estimate))
   expect_equal(res$call_info$engine, "fastbkmr")
+
+  causal_plot <- gbkmr_causal_overall(
+    res, quantiles = c(0.25, 0.75), K = 1,
+    sel = tail(res$raw_results$meta$sel, 2), seed = 8
+  )
+  expect_s3_class(causal_plot, "gbkmr_causal_effects")
 })
 
 test_that("run_gbkmr_panel rejects sel beyond iter", {
@@ -93,6 +99,13 @@ test_that("binary outcome produces probability-scale ATE", {
   expect_gte(res$counterfactual_means$high, 0)
   expect_lte(res$counterfactual_means$high, 1)
   expect_equal(res$call_info$outcome_type, "binary")
+
+  causal_plot <- gbkmr_causal_overall(
+    res, quantiles = c(0.25, 0.75), K = 1,
+    sel = tail(res$raw_results$meta$sel, 2), seed = 8
+  )
+  expect_true(all(causal_plot$draws$counterfactual_mean >= 0))
+  expect_true(all(causal_plot$draws$counterfactual_mean <= 1))
 })
 
 test_that("binary outcome with fastbkmr engine errors clearly", {
@@ -141,6 +154,11 @@ test_that("binary time-varying confounders use probit BKMR models", {
   expect_equal(res$call_info$confounder_types[["Lbin"]], "binary")
   expect_equal(res$raw_results$fit_confounders[[1]][[1]]$family, "binomial")
   expect_true(all(as.vector(res$raw_results$L_samp_a[[1]][[1]]) %in% c(0, 1)))
+
+  causal_plot <- gbkmr_causal_overall(
+    res, quantiles = c(0.25, 0.75), K = 1, seed = 8
+  )
+  expect_s3_class(causal_plot, "gbkmr_causal_effects")
 })
 
 test_that("binary time-varying confounders reject fastbkmr engine", {

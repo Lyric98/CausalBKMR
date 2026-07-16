@@ -2,7 +2,7 @@
 % Please edit documentation in R/04-core-analysis.R
 \name{run_gbkmr_panel}
 \alias{run_gbkmr_panel}
-\title{Core g-BKMR analysis implementation}
+\title{Run g-BKMR panel analysis}
 \usage{
 run_gbkmr_panel(
   sim_popn,
@@ -82,5 +82,5 @@ high-exposure scenario. Overrides a_probs if provided.}
 A list with causal effect estimate and model fits.
 }
 \description{
-Core g-BKMR analysis implementation
+Run g-BKMR panel analysis
 }

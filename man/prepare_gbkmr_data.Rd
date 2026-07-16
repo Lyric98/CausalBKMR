@@ -2,7 +2,7 @@
 % Please edit documentation in R/02-data-preparation.R
 \name{prepare_gbkmr_data}
 \alias{prepare_gbkmr_data}
-\title{Data preparation and formatting for g-BKMR}
+\title{Prepare user matrices for g-BKMR analysis}
 \usage{
 prepare_gbkmr_data(
   Y,
@@ -42,10 +42,6 @@ prepare_gbkmr_data(
 A data frame in g-BKMR format with proper variable naming and metadata.
 }
 \description{
-Functions to convert user data into the wide-format data structure
-required for g-BKMR analysis. Handles variable naming, transformations, and metadata.
-Prepare user matrices for g-BKMR analysis
-
 Converts user-provided matrices (Y, Z, X) into the wide-format
 data structure required for g-BKMR analysis. Supports both continuous and
 binary time-dependent covariates with enhanced input validation.

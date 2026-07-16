@@ -46,6 +46,10 @@ A full description of the methodology is available in the
 - An **Input Audit** block that prints the package's interpretation of
   your data before launching MCMC, plus **convergence diagnostics**
   (effective sample size, Geweke z-scores) for every fitted model.
+- Full g-formula **causal-effect plots** for the overall mixture,
+  univariate and conditional dose-response curves, single-exposure IQR
+  effects, and high-versus-low interaction contrasts. These commands
+  sequentially generate time-dependent confounders under every intervention.
 
 We welcome your feedback (email <yl5465@cumc.columbia.edu>).
 
@@ -54,7 +58,7 @@ We welcome your feedback (email <yl5465@cumc.columbia.edu>).
 Install required CRAN dependencies:
 
 ``` r
-install.packages(c("bkmr", "dplyr", "fields"))
+install.packages(c("bkmr", "dplyr", "fields", "ggplot2"))
 ```
 
 Install `causalBKMR` from GitHub:
@@ -94,6 +98,13 @@ results <- gbkmr_run(
 # 3. View results
 print(results)    # ACE, 95% credible interval, counterfactual means
 summary(results)  # + settings, diagnostics
+
+# 4. Plot causal effects from the full g-formula
+overall <- gbkmr_causal_overall(results)
+overall$plot
+
+iqr_effects <- gbkmr_causal_iqr(results)
+iqr_effects$plot
 ```
 
 See the [Quick Start guide](https://lyric98.github.io/CausalBKMR/articles/gbkmr_quickstart.html)
@@ -109,6 +120,7 @@ for a complete walkthrough.
 | Binary outcome | [Example 2](https://lyric98.github.io/CausalBKMR/articles/gbkmr_example_binary.html) |
 | Large-sample fastBKMR | [Example 3](https://lyric98.github.io/CausalBKMR/articles/gbkmr_example_fastbkmr.html) |
 | Diagnostics & troubleshooting | [Diagnostics](https://lyric98.github.io/CausalBKMR/articles/gbkmr_diagnostics.html) |
+| Causal-effect plots | [Causal Plots](https://lyric98.github.io/CausalBKMR/articles/gbkmr_causal_plots.html) |
 | Function reference | [Functions](https://lyric98.github.io/CausalBKMR/reference/) |
 
 ## Citation

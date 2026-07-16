@@ -2,7 +2,7 @@
 % Please edit documentation in R/01-validation.R
 \name{validate_user_matrices}
 \alias{validate_user_matrices}
-\title{Input validation utilities for g-BKMR}
+\title{Validate user-provided matrices for g-BKMR analysis}
 \usage{
 validate_user_matrices(Y, Z, X, T, Adim, Ldim, n_baseline)
 }
@@ -25,10 +25,6 @@ validate_user_matrices(Y, Z, X, T, Adim, Ldim, n_baseline)
 Invisible TRUE if validation passes, stops with error if validation fails.
 }
 \description{
-Contains functions to validate user inputs before g-BKMR analysis.
-These functions ensure data quality and parameter consistency.
-Validate user-provided matrices for g-BKMR analysis
-
 Performs comprehensive validation of input matrices Y, Z, X
 to ensure they meet the requirements for g-BKMR analysis.
 }

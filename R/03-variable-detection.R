@@ -1,7 +1,4 @@
-#' @file 03-variable-detection.R
-#' @title Variable pattern detection for g-BKMR
-#' @description Automatically detects variable structures in prepared g-BKMR data.
-#' Identifies exposure variables, time-dependent covariates, and their naming patterns.
+# Variable pattern detection for g-BKMR
 
 #' Detect variable patterns in g-BKMR data
 #'

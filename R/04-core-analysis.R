@@ -1,6 +1,4 @@
-#' @file 04-core-analysis.R
-#' @title Core g-BKMR analysis implementation
-#' @importFrom stats complete.cases quantile rnorm
+# Core g-BKMR analysis implementation
 
 #' Run g-BKMR panel analysis
 #'
@@ -34,6 +32,7 @@
 #' @param verbose_every Integer. Print progress every N iterations.
 #'
 #' @return A list with causal effect estimate and model fits.
+#' @importFrom stats complete.cases quantile rnorm
 #' @export
 run_gbkmr_panel <- function(
     sim_popn,
@@ -472,6 +471,12 @@ run_gbkmr_panel <- function(
     fit_y = fit_y,
     beta_L = beta_L,
     beta_y = beta_y,
+    gcomp_state = list(
+      exposure_data = A_all,
+      confounder_scale_info = scaleinfo_list,
+      outcome_scale_info = scale_info_y,
+      baseline_predictors = X_predict_common
+    ),
     meta = list(
       T = T, p = p,
       confounder_basenames = confounder_basenames,
@@ -479,6 +484,7 @@ run_gbkmr_panel <- function(
       common_covariates = common_covariates,
       K = K, sel = sel, iter = iter, n_iter = n_iter,
       n_knots = n_knots, n = n,
+      currind = currind,
       engine = engine, n_subset = n_subset, n_cores = n_cores,
       outcome_type = outcome_type,
       a_probs = a_probs, a_vals = a_vals, astar_vals = astar_vals,

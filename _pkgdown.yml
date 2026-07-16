@@ -32,6 +32,8 @@ navbar:
           href: articles/gbkmr_example_fastbkmr.html
         - text: Diagnostics & Troubleshooting
           href: articles/gbkmr_diagnostics.html
+        - text: Causal Effect Plots
+          href: articles/gbkmr_causal_plots.html
   right:
     - icon: fa-file-code-o
       text: Functions
@@ -56,6 +58,15 @@ reference:
     contents:
       - gbkmr_run
       - run_gbkmr_panel
+
+  - title: "Causal Effect Plots"
+    desc: "Full g-formula causal contrasts and visualization"
+    contents:
+      - gbkmr_causal_overall
+      - gbkmr_causal_univariate
+      - gbkmr_causal_bivariate
+      - gbkmr_causal_iqr
+      - gbkmr_causal_interaction
 
   - title: "S3 Methods"
     desc: "Print methods for current result objects"

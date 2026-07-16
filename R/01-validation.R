@@ -1,7 +1,4 @@
-#' @file 01-validation.R
-#' @title Input validation utilities for g-BKMR
-#' @description Contains functions to validate user inputs before g-BKMR analysis.
-#' These functions ensure data quality and parameter consistency.
+# Input validation utilities for g-BKMR
 
 #' Validate user-provided matrices for g-BKMR analysis
 #'

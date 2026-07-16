@@ -2,7 +2,7 @@
 % Please edit documentation in R/03-variable-detection.R
 \name{detect_variable_patterns}
 \alias{detect_variable_patterns}
-\title{Variable pattern detection for g-BKMR}
+\title{Detect variable patterns in g-BKMR data}
 \usage{
 detect_variable_patterns(data, T)
 }
@@ -25,10 +25,6 @@ A list containing the detected variable structure:
 }
 }
 \description{
-Automatically detects variable structures in prepared g-BKMR data.
-Identifies exposure variables, time-dependent covariates, and their naming patterns.
-Detect variable patterns in g-BKMR data
-
 Automatically detects the structure of exposure and
 time-dependent covariate variables in prepared g-BKMR data. This function
 is essential for the automated analysis pipeline.

@@ -158,6 +158,13 @@ window.
 This means the usual `bkmr` summary functions can be used directly for
 the outcome model and for each time-dependent confounder model.
 
+These plots are model diagnostics, not causal-effect plots. In particular,
+`PredictorResponseUnivar()` and `OverallRiskSummaries()` summarize the fitted
+outcome regression surface without regenerating time-dependent confounders
+under an intervention. Use the commands in the
+[Causal Effect Plots](gbkmr_causal_plots.html) vignette for full g-formula
+overall, univariate, conditional, IQR, and interaction contrasts.
+
 The examples below use the standard BKMR engine. If `engine = "fastbkmr"`,
 the stored fit is a list of subset fits; inspect one subset at a time or
 loop over subsets.
@@ -318,6 +325,7 @@ For binary outcomes, these draws are on the risk-difference scale.
 
 ## See Also
 
+- [Causal Effect Plots](gbkmr_causal_plots.html)
 - [Quick Start](gbkmr_quickstart.html)
 - [Custom intervention contrasts](gbkmr_example_contrasts.html)
 - [Large samples with fastBKMR](gbkmr_example_fastbkmr.html)

@@ -1,6 +1,4 @@
-#' @file 05-user-interface.R
-#' @title User-friendly interface for g-BKMR
-#' @importFrom stats quantile
+# User-friendly interface for g-BKMR
 
 #' Detect whether a vector is binary (0/1) or continuous
 #'
@@ -208,6 +206,7 @@ print_input_audit <- function(data, outcome, outcome_type, time_points,
 #' @param verbose Logical. Print progress.
 #'
 #' @return Object of class "gbkmr_results".
+#' @importFrom stats quantile
 #' @export
 gbkmr_run <- function(
     data,
@@ -506,7 +505,7 @@ print.gbkmr_results <- function(x, ...) {
   cat("======================\n\n")
   cat("Engine:", x$call_info$engine, "\n")
   cat("Causal Effect (ATE):", round(x$causal_effect$estimate, 4), "\n")
-  cat("95% CI: (", round(x$causal_effect$lower, 4), ",",
+  cat("95% CrI: (", round(x$causal_effect$lower, 4), ",",
       round(x$causal_effect$upper, 4), ")\n\n")
   cat("Counterfactual Means:\n")
   cat("  E[Y^a]  (low):", round(x$counterfactual_means$low, 4), "\n")
@@ -525,9 +524,9 @@ summary.gbkmr_results <- function(object, ...) {
       "vs", object$call_info$a_probs[2], "\n")
 
   if (sign(object$causal_effect$lower) == sign(object$causal_effect$upper)) {
-    cat("\n  95% CI excludes zero: Yes\n")
+    cat("\n  95% CrI excludes zero: Yes\n")
   } else {
-    cat("\n  95% CI excludes zero: No\n")
+    cat("\n  95% CrI excludes zero: No\n")
   }
   invisible(object)
 }

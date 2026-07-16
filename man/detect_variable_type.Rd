@@ -2,7 +2,7 @@
 % Please edit documentation in R/05-user-interface.R
 \name{detect_variable_type}
 \alias{detect_variable_type}
-\title{User-friendly interface for g-BKMR}
+\title{Detect whether a vector is binary (0/1) or continuous}
 \usage{
 detect_variable_type(x)
 }
