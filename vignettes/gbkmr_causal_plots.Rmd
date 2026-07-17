@@ -8,7 +8,13 @@ vignette: >
 ---
 
 ```{r setup, include = FALSE, purl=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE, purl = FALSE)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE,
+  purl = FALSE,
+  fig.align = "center"
+)
 ```
 
 ## What These Plots Estimate
@@ -34,15 +40,32 @@ the values used by the fitted g-computation, currently their sample means.
 ## Fit the Model
 
 All five commands take the object returned by `gbkmr_run()`.
+The figures below use a deterministic simulated longitudinal dataset with three
+mixture components at two visits, one continuous time-dependent confounder, and
+two baseline covariates. They illustrate the plotting interface and are not SHS
+results. The complete data-generation and figure script is available in
+[`tools/generate-causal-plot-examples.R`](https://github.com/Lyric98/CausalBKMR/blob/master/tools/generate-causal-plot-examples.R).
+
+The short MCMC and Monte Carlo settings below keep the example reproducible on
+a laptop. Substantive analyses should use longer chains, inspect diagnostics,
+and increase `K` until the g-computation summaries are stable.
 
 ```{r fit, purl=FALSE}
+library(causalBKMR)
+
+plot_sel <- seq(720, 1200, by = 16)
 fit <- gbkmr_run(
   data = prepared,
   outcome = "Y",
   outcome_type = "continuous",
-  time_points = 3,
-  iter = 15000,
-  K = 1000
+  time_points = 2,
+  currind = 2026,
+  sel = plot_sel,
+  K = 25,
+  iter = 1200,
+  n_knots = 25,
+  engine = "bkmr",
+  verbose = FALSE
 )
 ```
 
@@ -79,11 +102,18 @@ time-dependent confounders.
 overall <- gbkmr_causal_overall(
   fit,
   quantiles = seq(0.30, 0.90, by = 0.05),
-  reference = 0.25
+  reference = 0.25,
+  K = 10,
+  sel = plot_sel,
+  seed = 2026
 )
 
 overall$summary
 overall$plot
+```
+
+```{r overall-figure, echo=FALSE, eval=TRUE, out.width="88%", fig.alt="Overall mixture causal-effect curve with a posterior credible band."}
+knitr::include_graphics("figures/causal-overall.png")
 ```
 
 ## Univariate Causal Dose-Response
@@ -103,14 +133,21 @@ available in the returned data.
 ```{r univariate, purl=FALSE}
 univariate <- gbkmr_causal_univariate(
   fit,
-  exposures = c("logM1_0", "logM1_1", "logM1_2"),
-  quantiles = seq(0.10, 0.90, by = 0.05),
+  exposures = c("logM1_0", "logM2_0", "logM1_1", "logM2_1"),
+  quantiles = seq(0.10, 0.90, by = 0.10),
   reference = 0.25,
-  background = 0.50
+  background = 0.50,
+  K = 10,
+  sel = plot_sel,
+  seed = 2026
 )
 
 univariate$summary
 univariate$plot
+```
+
+```{r univariate-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Four univariate causal dose-response panels with posterior credible bands."}
+knitr::include_graphics("figures/causal-univariate.png")
 ```
 
 Use `time_points` to select visits without listing every exposure name.
@@ -140,22 +177,29 @@ horizontal axis, and the second defines the colored conditional levels.
 
 ```{r bivariate, purl=FALSE}
 pairs <- data.frame(
-  focal = c("logM1_0", "logM2_0"),
-  conditional = c("logM2_0", "logM3_0")
+  focal = c("logM1_0", "logM1_1", "logM2_0"),
+  conditional = c("logM2_0", "logM2_1", "logM3_0")
 )
 
 bivariate <- gbkmr_causal_bivariate(
   fit,
   exposures = unique(unlist(pairs)),
   pairs = pairs,
-  quantiles = seq(0.10, 0.90, by = 0.05),
+  quantiles = seq(0.10, 0.90, by = 0.10),
   conditional_quantiles = c(0.25, 0.50, 0.75),
   reference = 0.25,
-  background = 0.50
+  background = 0.50,
+  K = 10,
+  sel = plot_sel,
+  seed = 2026
 )
 
 bivariate$summary
 bivariate$plot
+```
+
+```{r bivariate-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Three conditional causal dose-response panels at low, median, and high conditioning levels."}
+knitr::include_graphics("figures/causal-bivariate.png")
 ```
 
 If `pairs = NULL`, all unordered pairs among the selected exposures are used.
@@ -182,11 +226,18 @@ means and intervals are posterior credible intervals.
 iqr_effects <- gbkmr_causal_iqr(
   fit,
   contrast_quantiles = c(0.25, 0.75),
-  background_quantiles = c(0.25, 0.50, 0.75)
+  background_quantiles = c(0.25, 0.50, 0.75),
+  K = 10,
+  sel = plot_sel,
+  seed = 2026
 )
 
 iqr_effects$summary
 iqr_effects$plot
+```
+
+```{r iqr-figure, echo=FALSE, eval=TRUE, out.width="88%", fig.alt="Forest plot of exposure-specific IQR causal effects under three mixture backgrounds."}
+knitr::include_graphics("figures/causal-iqr.png")
 ```
 
 ## High-Versus-Low Interaction Contrasts
@@ -213,12 +264,19 @@ interactions <- gbkmr_causal_interaction(
   fit,
   contrast_quantiles = c(0.25, 0.75),
   low_background = 0.25,
-  high_background = 0.75
+  high_background = 0.75,
+  K = 10,
+  sel = plot_sel,
+  seed = 2026
 )
 
 interactions$summary
 interactions$draws
 interactions$plot
+```
+
+```{r interaction-figure, echo=FALSE, eval=TRUE, out.width="88%", fig.alt="Forest plot of high-versus-low background interaction contrasts."}
+knitr::include_graphics("figures/causal-interaction.png")
 ```
 
 ## Computation and Reproducibility
