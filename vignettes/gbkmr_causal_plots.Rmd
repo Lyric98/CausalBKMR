@@ -54,7 +54,7 @@ and increase `K` until the g-computation summaries are stable.
 ```{r fit, purl=FALSE}
 library(causalBKMR)
 
-plot_sel <- seq(800, 1200, by = 20)
+plot_sel <- seq(1200, 2000, by = 40)
 fit <- gbkmr_run(
   data = prepared,
   outcome = "Y",
@@ -63,8 +63,8 @@ fit <- gbkmr_run(
   currind = 2026,
   sel = plot_sel,
   K = 15,
-  iter = 1200,
-  n_knots = 30,
+  iter = 2000,
+  n_knots = 40,
   engine = "bkmr",
   verbose = FALSE
 )
@@ -180,7 +180,11 @@ The matrix layout places focal exposures in columns and conditioning exposures
 in rows. Both pair directions are shown, the diagonal is blank, and colors
 represent conditioning quantiles 0.25, 0.50, and 0.75. The example creates one
 5-by-5 matrix for each visit; the other 13 exposure-by-visit components remain
-at their medians in every off-diagonal panel.
+at their medians in every off-diagonal panel. Lines are posterior mean causal
+effects and shaded ribbons are pointwise 95% posterior credible intervals. To
+make the conditioning contrasts visible, the illustrative outcome model combines
+a signed linear mixture score with its squared term, inducing nonzero pairwise
+interactions among all five metals at each visit.
 
 ```{r bivariate, purl=FALSE}
 time_indices <- 0:2
@@ -206,19 +210,19 @@ bivariate[["Visit 1"]]$plot
 
 ### Visit 1
 
-```{r bivariate-visit1-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Visit 1 five-by-five conditional bivariate causal dose-response matrix. Columns are focal metals, rows are conditioning metals, and the diagonal is blank."}
+```{r bivariate-visit1-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Visit 1 five-by-five conditional bivariate causal dose-response matrix. Columns are focal metals, rows are conditioning metals, and the diagonal is blank. Lines are posterior means and ribbons are 95% posterior credible intervals."}
 knitr::include_graphics("figures/causal-bivariate-visit1.png")
 ```
 
 ### Visit 2
 
-```{r bivariate-visit2-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Visit 2 five-by-five conditional bivariate causal dose-response matrix. Columns are focal metals, rows are conditioning metals, and the diagonal is blank."}
+```{r bivariate-visit2-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Visit 2 five-by-five conditional bivariate causal dose-response matrix. Columns are focal metals, rows are conditioning metals, and the diagonal is blank. Lines are posterior means and ribbons are 95% posterior credible intervals."}
 knitr::include_graphics("figures/causal-bivariate-visit2.png")
 ```
 
 ### Visit 3
 
-```{r bivariate-visit3-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Visit 3 five-by-five conditional bivariate causal dose-response matrix. Columns are focal metals, rows are conditioning metals, and the diagonal is blank."}
+```{r bivariate-visit3-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Visit 3 five-by-five conditional bivariate causal dose-response matrix. Columns are focal metals, rows are conditioning metals, and the diagonal is blank. Lines are posterior means and ribbons are 95% posterior credible intervals."}
 knitr::include_graphics("figures/causal-bivariate-visit3.png")
 ```
 

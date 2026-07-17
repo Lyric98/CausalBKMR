@@ -713,9 +713,9 @@ gbkmr_causal_bivariate <- function(
     ggplot2::geom_hline(yintercept = 0, color = "grey55", linewidth = 0.4) +
     ggplot2::geom_ribbon(
       ggplot2::aes(ymin = .data$lower, ymax = .data$upper),
-      alpha = 0.12, color = NA
+      alpha = 0.20, color = NA
     ) +
-    ggplot2::geom_line(linewidth = 0.8) +
+    ggplot2::geom_line(linewidth = 0.9) +
     ggplot2::scale_color_manual(values = conditional_colors, drop = FALSE) +
     ggplot2::scale_fill_manual(values = conditional_colors, drop = FALSE)
 

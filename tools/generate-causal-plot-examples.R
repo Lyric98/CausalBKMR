@@ -22,14 +22,14 @@ if (!requireNamespace("bkmr", quietly = TRUE) ||
 }
 
 set.seed(20260716)
-n <- 220L
+n <- 500L
 T_points <- 3L
 p <- 5L
 
 sex <- stats::rbinom(n, 1, 0.5)
 age_z <- as.numeric(scale(stats::rnorm(n, 55, 9)))
 
-correlation <- matrix(0.35, p, p)
+correlation <- matrix(0.20, p, p)
 diag(correlation) <- 1
 log_a0 <- 1 + 0.50 * (matrix(stats::rnorm(n * p), n, p) %*%
                         chol(correlation))
@@ -40,8 +40,8 @@ waist_1 <- 0.55 * centered_a0[, 1] - 0.30 * centered_a0[, 2] +
   0.25 * sex + 0.15 * age_z + stats::rnorm(n, 0, 0.55)
 
 visit_two_noise <- matrix(stats::rnorm(n * p), n, p) %*% chol(correlation)
-log_a1 <- 1 + 0.48 * centered_a0 + 0.16 * waist_1 +
-  0.38 * visit_two_noise
+log_a1 <- 1 + 0.20 * centered_a0 + 0.16 * waist_1 +
+  0.46 * visit_two_noise
 centered_a1 <- sweep(log_a1, 2, 1)
 
 waist_2 <- 0.55 * waist_1 + 0.45 * centered_a1[, 1] -
@@ -50,18 +50,22 @@ waist_2 <- 0.55 * waist_1 + 0.45 * centered_a1[, 1] -
   0.20 * sex + 0.10 * age_z + stats::rnorm(n, 0, 0.55)
 
 visit_three_noise <- matrix(stats::rnorm(n * p), n, p) %*% chol(correlation)
-log_a2 <- 1 + 0.48 * centered_a1 + 0.15 * waist_2 +
-  0.38 * visit_three_noise
+log_a2 <- 1 + 0.20 * centered_a1 + 0.15 * waist_2 +
+  0.46 * visit_three_noise
 centered_a2 <- sweep(log_a2, 2, 1)
 
-Y <- 1.00 * centered_a0[, 1] - 0.50 * centered_a0[, 2] +
-  0.65 * centered_a1[, 1] + 0.40 * centered_a1[, 4]^2 +
-  0.55 * centered_a2[, 2] - 0.40 * centered_a2[, 5] +
-  1.00 * centered_a0[, 1] * centered_a0[, 2] +
-  0.55 * centered_a1[, 1] * centered_a1[, 3] +
-  0.60 * centered_a2[, 2] * centered_a2[, 4] +
+all_exposures <- cbind(centered_a0, centered_a1, centered_a2)
+interaction_weights <- c(
+  1, 1, 1, -1, -1,
+  1, -1, 1, -1, 2,
+  1, -1, -1, -1, 1
+)
+interaction_score <- drop(all_exposures %*% interaction_weights)
+
+Y <- 20.00 * interaction_score +
+  8.00 * (interaction_score^2 - mean(interaction_score^2)) +
   0.35 * waist_2 + 0.30 * sex + 0.20 * age_z +
-  stats::rnorm(n, 0, 0.85)
+  stats::rnorm(n, 0, 0.90)
 
 Z <- cbind(exp(log_a0), exp(log_a1), exp(log_a2))
 X <- cbind(waist_1, waist_2, sex, age_z)
@@ -77,7 +81,7 @@ prepared <- prepare_gbkmr_data(
   log_transform_mixtures = TRUE
 )
 
-plot_sel <- seq(800, 1200, by = 20)
+plot_sel <- seq(1200, 2000, by = 40)
 fit <- suppressWarnings(gbkmr_run(
   data = prepared,
   outcome = "Y",
@@ -86,8 +90,8 @@ fit <- suppressWarnings(gbkmr_run(
   currind = 2026,
   sel = plot_sel,
   K = 15,
-  iter = 1200,
-  n_knots = 30,
+  iter = 2000,
+  n_knots = 40,
   engine = "bkmr",
   verbose = FALSE
 ))
