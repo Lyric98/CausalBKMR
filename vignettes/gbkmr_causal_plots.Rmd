@@ -40,10 +40,11 @@ the values used by the fitted g-computation, currently their sample means.
 ## Fit the Model
 
 All five commands take the object returned by `gbkmr_run()`.
-The figures below use a deterministic simulated longitudinal dataset with three
-mixture components at two visits, one continuous time-dependent confounder, and
-two baseline covariates. They illustrate the plotting interface and are not SHS
-results. The complete data-generation and figure script is available in
+The figures below use one deterministic simulated longitudinal dataset with five
+metals at three visits, one continuous time-dependent confounder measured after
+the first and second visits, and two baseline covariates. They illustrate the
+plotting interface and are not SHS results. The complete data-generation and
+figure script is available in
 [`tools/generate-causal-plot-examples.R`](https://github.com/Lyric98/CausalBKMR/blob/master/tools/generate-causal-plot-examples.R).
 
 The short MCMC and Monte Carlo settings below keep the example reproducible on
@@ -53,17 +54,17 @@ and increase `K` until the g-computation summaries are stable.
 ```{r fit, purl=FALSE}
 library(causalBKMR)
 
-plot_sel <- seq(720, 1200, by = 16)
+plot_sel <- seq(800, 1200, by = 20)
 fit <- gbkmr_run(
   data = prepared,
   outcome = "Y",
   outcome_type = "continuous",
-  time_points = 2,
+  time_points = 3,
   currind = 2026,
   sel = plot_sel,
-  K = 25,
+  K = 15,
   iter = 1200,
-  n_knots = 25,
+  n_knots = 30,
   engine = "bkmr",
   verbose = FALSE
 )
@@ -103,7 +104,7 @@ overall <- gbkmr_causal_overall(
   fit,
   quantiles = seq(0.30, 0.90, by = 0.05),
   reference = 0.25,
-  K = 10,
+  K = 5,
   sel = plot_sel,
   seed = 2026
 )
@@ -133,11 +134,10 @@ available in the returned data.
 ```{r univariate, purl=FALSE}
 univariate <- gbkmr_causal_univariate(
   fit,
-  exposures = c("logM1_0", "logM2_0", "logM1_1", "logM2_1"),
   quantiles = seq(0.10, 0.90, by = 0.10),
   reference = 0.25,
   background = 0.50,
-  K = 10,
+  K = 5,
   sel = plot_sel,
   seed = 2026
 )
@@ -146,16 +146,17 @@ univariate$summary
 univariate$plot
 ```
 
-```{r univariate-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Four univariate causal dose-response panels with posterior credible bands."}
+```{r univariate-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Fifteen univariate causal dose-response panels with posterior credible bands."}
 knitr::include_graphics("figures/causal-univariate.png")
 ```
 
-Use `time_points` to select visits without listing every exposure name.
+Use `time_points` to select visits without listing every exposure name. Visit
+indices match the exposure-name suffixes and begin at zero.
 
 ```{r univariate-filter, purl=FALSE}
-visit_one <- gbkmr_causal_univariate(
+baseline_visit <- gbkmr_causal_univariate(
   fit,
-  time_points = 1,
+  time_points = 0,
   quantiles = seq(0.20, 0.80, by = 0.10)
 )
 ```
@@ -172,40 +173,60 @@ E\{Y(A_j=x, A_k=c, A_{-(j,k)}=0.50)\}
 - E\{Y(A_j=q_{0.25,j}, A_k=c, A_{-(j,k)}=0.50)\}.
 \]
 
-The order of each pair matters: the first column is the focal exposure on the
-horizontal axis, and the second defines the colored conditional levels.
+The direction of each pair matters: the focal exposure is on the horizontal axis,
+and the conditional exposure defines the colored levels.
+
+The matrix layout places focal exposures in columns and conditioning exposures
+in rows. Both pair directions are shown, the diagonal is blank, and colors
+represent conditioning quantiles 0.25, 0.50, and 0.75. The example creates one
+5-by-5 matrix for each visit; the other 13 exposure-by-visit components remain
+at their medians in every off-diagonal panel.
 
 ```{r bivariate, purl=FALSE}
-pairs <- data.frame(
-  focal = c("logM1_0", "logM1_1", "logM2_0"),
-  conditional = c("logM2_0", "logM2_1", "logM3_0")
-)
+time_indices <- 0:2
+bivariate <- lapply(time_indices, function(time_index) {
+  gbkmr_causal_bivariate(
+    fit,
+    time_points = time_index,
+    layout = "matrix",
+    quantiles = seq(0.10, 0.90, by = 0.10),
+    conditional_quantiles = c(0.25, 0.50, 0.75),
+    reference = 0.25,
+    background = 0.50,
+    K = 5,
+    sel = plot_sel,
+    seed = 2026
+  )
+})
+names(bivariate) <- paste("Visit", seq_along(bivariate))
 
-bivariate <- gbkmr_causal_bivariate(
-  fit,
-  exposures = unique(unlist(pairs)),
-  pairs = pairs,
-  quantiles = seq(0.10, 0.90, by = 0.10),
-  conditional_quantiles = c(0.25, 0.50, 0.75),
-  reference = 0.25,
-  background = 0.50,
-  K = 10,
-  sel = plot_sel,
-  seed = 2026
-)
-
-bivariate$summary
-bivariate$plot
+bivariate[["Visit 1"]]$summary
+bivariate[["Visit 1"]]$plot
 ```
 
-```{r bivariate-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Three conditional causal dose-response panels at low, median, and high conditioning levels."}
-knitr::include_graphics("figures/causal-bivariate.png")
+### Visit 1
+
+```{r bivariate-visit1-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Visit 1 five-by-five conditional bivariate causal dose-response matrix. Columns are focal metals, rows are conditioning metals, and the diagonal is blank."}
+knitr::include_graphics("figures/causal-bivariate-visit1.png")
 ```
 
-If `pairs = NULL`, all unordered pairs among the selected exposures are used.
-For mixtures measured at many visits, explicitly selecting `pairs`,
-`exposures`, or `time_points` avoids an unnecessarily dense figure and a large
-g-computation grid.
+### Visit 2
+
+```{r bivariate-visit2-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Visit 2 five-by-five conditional bivariate causal dose-response matrix. Columns are focal metals, rows are conditioning metals, and the diagonal is blank."}
+knitr::include_graphics("figures/causal-bivariate-visit2.png")
+```
+
+### Visit 3
+
+```{r bivariate-visit3-figure, echo=FALSE, eval=TRUE, out.width="100%", fig.alt="Visit 3 five-by-five conditional bivariate causal dose-response matrix. Columns are focal metals, rows are conditioning metals, and the diagonal is blank."}
+knitr::include_graphics("figures/causal-bivariate-visit3.png")
+```
+
+With `layout = "matrix"` and `pairs = NULL`, all ordered pairs among the
+selected exposures are used. Set `layout = "wrap"` for one panel per unordered
+pair, or provide `pairs` explicitly to restrict the causal comparisons.
+Filtering by `time_points` keeps large longitudinal mixtures readable and
+limits the g-computation grid.
 
 ## Single-Exposure IQR Causal Effects
 
@@ -227,7 +248,7 @@ iqr_effects <- gbkmr_causal_iqr(
   fit,
   contrast_quantiles = c(0.25, 0.75),
   background_quantiles = c(0.25, 0.50, 0.75),
-  K = 10,
+  K = 5,
   sel = plot_sel,
   seed = 2026
 )
@@ -265,7 +286,7 @@ interactions <- gbkmr_causal_interaction(
   contrast_quantiles = c(0.25, 0.75),
   low_background = 0.25,
   high_background = 0.75,
-  K = 10,
+  K = 5,
   sel = plot_sel,
   seed = 2026
 )
@@ -289,7 +310,8 @@ trajectories to make the estimates stable.
 ```{r plot-check, purl=FALSE}
 quick_check <- gbkmr_causal_bivariate(
   fit,
-  pairs = pairs[1, , drop = FALSE],
+  pairs = data.frame(focal = "logM1_0", conditional = "logM2_0"),
+  layout = "wrap",
   quantiles = c(0.25, 0.50, 0.75),
   K = 50,
   seed = 2026

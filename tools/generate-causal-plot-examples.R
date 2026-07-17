@@ -22,36 +22,49 @@ if (!requireNamespace("bkmr", quietly = TRUE) ||
 }
 
 set.seed(20260716)
-n <- 180L
-T_points <- 2L
-p <- 3L
+n <- 220L
+T_points <- 3L
+p <- 5L
 
 sex <- stats::rbinom(n, 1, 0.5)
 age_z <- as.numeric(scale(stats::rnorm(n, 55, 9)))
 
-correlation <- matrix(0.45, p, p)
+correlation <- matrix(0.35, p, p)
 diag(correlation) <- 1
-log_a0 <- 1 + 0.55 * (matrix(stats::rnorm(n * p), n, p) %*%
+log_a0 <- 1 + 0.50 * (matrix(stats::rnorm(n * p), n, p) %*%
                         chol(correlation))
-x10 <- log_a0[, 1] - 1
-x20 <- log_a0[, 2] - 1
+centered_a0 <- sweep(log_a0, 2, 1)
 
-waist_1 <- 0.60 * x10 - 0.35 * x20 + 0.45 * x10 * x20 +
+waist_1 <- 0.55 * centered_a0[, 1] - 0.30 * centered_a0[, 2] +
+  0.35 * centered_a0[, 1] * centered_a0[, 2] +
   0.25 * sex + 0.15 * age_z + stats::rnorm(n, 0, 0.55)
 
 visit_two_noise <- matrix(stats::rnorm(n * p), n, p) %*% chol(correlation)
-log_a1 <- 1 + 0.50 * sweep(log_a0, 2, 1) +
-  0.18 * waist_1 + 0.38 * visit_two_noise
-x11 <- log_a1[, 1] - 1
-x21 <- log_a1[, 2] - 1
-x31 <- log_a1[, 3] - 1
+log_a1 <- 1 + 0.48 * centered_a0 + 0.16 * waist_1 +
+  0.38 * visit_two_noise
+centered_a1 <- sweep(log_a1, 2, 1)
 
-Y <- 1.10 * x10 - 0.55 * x20 + 0.70 * x11 + 0.35 * x31^2 +
-  1.15 * x10 * x20 + 0.55 * x11 * x21 + 0.40 * waist_1 +
-  0.30 * sex + 0.20 * age_z + stats::rnorm(n, 0, 0.85)
+waist_2 <- 0.55 * waist_1 + 0.45 * centered_a1[, 1] -
+  0.30 * centered_a1[, 3] +
+  0.35 * centered_a1[, 1] * centered_a1[, 2] +
+  0.20 * sex + 0.10 * age_z + stats::rnorm(n, 0, 0.55)
 
-Z <- cbind(exp(log_a0), exp(log_a1))
-X <- cbind(waist_1, sex, age_z)
+visit_three_noise <- matrix(stats::rnorm(n * p), n, p) %*% chol(correlation)
+log_a2 <- 1 + 0.48 * centered_a1 + 0.15 * waist_2 +
+  0.38 * visit_three_noise
+centered_a2 <- sweep(log_a2, 2, 1)
+
+Y <- 1.00 * centered_a0[, 1] - 0.50 * centered_a0[, 2] +
+  0.65 * centered_a1[, 1] + 0.40 * centered_a1[, 4]^2 +
+  0.55 * centered_a2[, 2] - 0.40 * centered_a2[, 5] +
+  1.00 * centered_a0[, 1] * centered_a0[, 2] +
+  0.55 * centered_a1[, 1] * centered_a1[, 3] +
+  0.60 * centered_a2[, 2] * centered_a2[, 4] +
+  0.35 * waist_2 + 0.30 * sex + 0.20 * age_z +
+  stats::rnorm(n, 0, 0.85)
+
+Z <- cbind(exp(log_a0), exp(log_a1), exp(log_a2))
+X <- cbind(waist_1, waist_2, sex, age_z)
 prepared <- prepare_gbkmr_data(
   Y = Y,
   Z = Z,
@@ -64,7 +77,7 @@ prepared <- prepare_gbkmr_data(
   log_transform_mixtures = TRUE
 )
 
-plot_sel <- seq(720, 1200, by = 16)
+plot_sel <- seq(800, 1200, by = 20)
 fit <- suppressWarnings(gbkmr_run(
   data = prepared,
   outcome = "Y",
@@ -72,14 +85,14 @@ fit <- suppressWarnings(gbkmr_run(
   time_points = T_points,
   currind = 2026,
   sel = plot_sel,
-  K = 25,
+  K = 15,
   iter = 1200,
-  n_knots = 25,
+  n_knots = 30,
   engine = "bkmr",
   verbose = FALSE
 ))
 
-plot_K <- 10L
+plot_K <- 5L
 overall <- gbkmr_causal_overall(
   fit,
   quantiles = seq(0.30, 0.90, by = 0.05),
@@ -89,10 +102,8 @@ overall <- gbkmr_causal_overall(
   seed = 2026
 )
 
-display_exposures <- c("logM1_0", "logM2_0", "logM1_1", "logM2_1")
 univariate <- gbkmr_causal_univariate(
   fit,
-  exposures = display_exposures,
   quantiles = seq(0.10, 0.90, by = 0.10),
   reference = 0.25,
   background = 0.50,
@@ -101,22 +112,20 @@ univariate <- gbkmr_causal_univariate(
   seed = 2026
 )
 
-pairs <- data.frame(
-  focal = c("logM1_0", "logM1_1", "logM2_0"),
-  conditional = c("logM2_0", "logM2_1", "logM3_0")
-)
-bivariate <- gbkmr_causal_bivariate(
-  fit,
-  exposures = unique(unlist(pairs)),
-  pairs = pairs,
-  quantiles = seq(0.10, 0.90, by = 0.10),
-  conditional_quantiles = c(0.25, 0.50, 0.75),
-  reference = 0.25,
-  background = 0.50,
-  K = plot_K,
-  sel = plot_sel,
-  seed = 2026
-)
+bivariate <- lapply(seq_len(T_points) - 1L, function(time_index) {
+  gbkmr_causal_bivariate(
+    fit,
+    time_points = time_index,
+    layout = "matrix",
+    quantiles = seq(0.10, 0.90, by = 0.10),
+    conditional_quantiles = c(0.25, 0.50, 0.75),
+    reference = 0.25,
+    background = 0.50,
+    K = plot_K,
+    sel = plot_sel,
+    seed = 2026
+  )
+})
 
 iqr_effects <- gbkmr_causal_iqr(
   fit,
@@ -164,9 +173,16 @@ save_example <- function(result, name, width, height) {
 }
 
 save_example(overall, "causal-overall", 7.0, 4.4)
-save_example(univariate, "causal-univariate", 8.0, 5.4)
-save_example(bivariate, "causal-bivariate", 9.0, 4.8)
-save_example(iqr_effects, "causal-iqr", 7.5, 5.3)
-save_example(interactions, "causal-interaction", 7.5, 5.3)
+save_example(univariate, "causal-univariate", 9.0, 8.0)
+for (visit_index in seq_along(bivariate)) {
+  save_example(
+    bivariate[[visit_index]],
+    paste0("causal-bivariate-visit", visit_index),
+    10.0,
+    8.2
+  )
+}
+save_example(iqr_effects, "causal-iqr", 8.0, 8.0)
+save_example(interactions, "causal-interaction", 8.0, 8.0)
 
 message("Wrote causal plot examples to ", output_dir)

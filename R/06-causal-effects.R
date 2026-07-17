@@ -507,10 +507,20 @@ gbkmr_causal_univariate <- function(
   )
 }
 
-.gbkmr_pairs <- function(selected, pairs) {
+.gbkmr_pairs <- function(selected, pairs, ordered = FALSE) {
   if (is.null(pairs)) {
     if (length(selected) < 2L) stop("At least two exposures are required.")
-    out <- t(utils::combn(selected, 2L))
+    if (ordered) {
+      out <- expand.grid(
+        focal = selected,
+        conditional = selected,
+        KEEP.OUT.ATTRS = FALSE,
+        stringsAsFactors = FALSE
+      )
+      out <- as.matrix(out[out$focal != out$conditional, , drop = FALSE])
+    } else {
+      out <- t(utils::combn(selected, 2L))
+    }
   } else if (is.data.frame(pairs) || is.matrix(pairs)) {
     out <- as.matrix(pairs)
   } else if (is.list(pairs)) {
@@ -543,7 +553,10 @@ gbkmr_causal_univariate <- function(
 #' @inheritParams gbkmr_causal_univariate
 #' @param pairs Exposure pairs. The first column or element is the focal
 #'   exposure and the second is the conditional exposure. `NULL` uses all
-#'   unordered pairs from the selected exposures.
+#'   ordered pairs when `layout = "matrix"` and all unordered pairs when
+#'   `layout = "wrap"`.
+#' @param layout Plot layout. `matrix` uses focal exposures as columns and
+#'   conditional exposures as rows; `wrap` uses one panel per pair.
 #' @param conditional_quantiles Quantiles for the conditional exposure.
 #'
 #' @return A `gbkmr_causal_effects` object; see
@@ -554,6 +567,7 @@ gbkmr_causal_bivariate <- function(
     exposures = NULL,
     time_points = NULL,
     pairs = NULL,
+    layout = c("matrix", "wrap"),
     quantiles = seq(0.10, 0.90, by = 0.05),
     conditional_quantiles = c(0.25, 0.50, 0.75),
     reference = 0.25,
@@ -565,7 +579,10 @@ gbkmr_causal_bivariate <- function(
     verbose = FALSE) {
   raw <- .gbkmr_get_raw(object)
   selected <- .gbkmr_select_exposures(raw, exposures, time_points)
-  pair_table <- .gbkmr_pairs(selected, pairs)
+  layout <- match.arg(layout)
+  pair_table <- .gbkmr_pairs(
+    selected, pairs, ordered = is.null(pairs) && layout == "matrix"
+  )
   quantiles <- .gbkmr_validate_probabilities(quantiles, "quantiles")
   conditional_quantiles <- .gbkmr_validate_probabilities(
     conditional_quantiles, "conditional_quantiles"
@@ -672,9 +689,23 @@ gbkmr_causal_bivariate <- function(
   summary$condition_level <- factor(
     summary$conditional_quantile,
     levels = conditional_quantiles,
-    labels = paste0(round(100 * conditional_quantiles), "th")
+    labels = formatC(conditional_quantiles, format = "f", digits = 2)
   )
-  plot <- ggplot2::ggplot(summary, ggplot2::aes(
+  plot_data <- summary
+  plot_data$focal <- factor(plot_data$focal, levels = selected)
+  plot_data$conditional <- factor(plot_data$conditional, levels = selected)
+  conditional_colors <- if (length(conditional_quantiles) == 3L) {
+    c("#D55E00", "#009E73", "#0072B2")
+  } else {
+    grDevices::hcl(
+      seq(15, 375, length.out = length(conditional_quantiles) + 1L)[
+        seq_along(conditional_quantiles)
+      ],
+      c = 80, l = 55
+    )
+  }
+
+  plot <- ggplot2::ggplot(plot_data, ggplot2::aes(
     x = .data$focal_value, y = .data$estimate,
     color = .data$condition_level, fill = .data$condition_level,
     group = .data$condition_level
@@ -685,22 +716,52 @@ gbkmr_causal_bivariate <- function(
       alpha = 0.12, color = NA
     ) +
     ggplot2::geom_line(linewidth = 0.8) +
-    ggplot2::facet_wrap(ggplot2::vars(.data$pair), scales = "free_x") +
+    ggplot2::scale_color_manual(values = conditional_colors, drop = FALSE) +
+    ggplot2::scale_fill_manual(values = conditional_colors, drop = FALSE)
+
+  if (layout == "matrix") {
+    plot <- plot +
+      ggplot2::facet_grid(
+        rows = ggplot2::vars(.data$conditional),
+        cols = ggplot2::vars(.data$focal),
+        scales = "free_x",
+        drop = FALSE
+      )
+  } else {
+    plot <- plot +
+      ggplot2::facet_wrap(ggplot2::vars(.data$pair), scales = "free_x")
+  }
+
+  plot <- plot +
     ggplot2::labs(
       x = "Focal exposure value",
       y = paste0("Causal effect vs focal q = ", format(reference)),
       color = "Conditional quantile",
       fill = "Conditional quantile",
-      title = "Conditional causal dose-response"
+      title = "Conditional bivariate causal dose-response",
+      subtitle = if (layout == "matrix") {
+        "Columns: focal exposure; rows: conditional exposure"
+      } else {
+        NULL
+      }
     ) +
     .gbkmr_plot_theme()
+
+  if (layout == "matrix") {
+    plot <- plot +
+      ggplot2::theme(
+        legend.position = "bottom",
+        strip.text = ggplot2::element_text(size = 8)
+      )
+  }
 
   .gbkmr_new_causal_result(
     "bivariate", summary, draws, intervention_table, plot,
     paste0("Within each conditional exposure level, E[Y(A_j=x)] - E[Y(A_j=q",
            reference, ")], with remaining exposures at q", background,
            " and time-dependent confounders generated sequentially."),
-    list(pairs = pair_table, reference = reference, background = background,
+    list(pairs = pair_table, layout = layout, reference = reference,
+         background = background,
          quantiles = quantiles, conditional_quantiles = conditional_quantiles,
          K = .gbkmr_or(K, raw$meta$K), sel = .gbkmr_or(sel, raw$meta$sel),
          credible_level = credible_level, seed = seed)

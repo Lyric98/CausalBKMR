@@ -9,6 +9,7 @@ gbkmr_causal_bivariate(
   exposures = NULL,
   time_points = NULL,
   pairs = NULL,
+  layout = c("matrix", "wrap"),
   quantiles = seq(0.1, 0.9, by = 0.05),
   conditional_quantiles = c(0.25, 0.5, 0.75),
   reference = 0.25,
@@ -29,7 +30,11 @@ gbkmr_causal_bivariate(
 
 \item{pairs}{Exposure pairs. The first column or element is the focal
 exposure and the second is the conditional exposure. \code{NULL} uses all
-unordered pairs from the selected exposures.}
+ordered pairs when \code{layout = "matrix"} and all unordered pairs when
+\code{layout = "wrap"}.}
+
+\item{layout}{Plot layout. \code{matrix} uses focal exposures as columns and
+conditional exposures as rows; \code{wrap} uses one panel per pair.}
 
 \item{quantiles}{Joint mixture quantiles to evaluate.}
 

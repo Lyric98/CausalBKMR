@@ -24,6 +24,18 @@ test_that("posterior summaries use draw-wise credible intervals", {
   expect_equal(unname(observed["upper"]), unname(quantile(draws, 0.90)))
 })
 
+test_that("bivariate pair helper supports directed matrix layout", {
+  selected <- c("M1", "M2", "M3")
+  directed <- causalBKMR:::.gbkmr_pairs(selected, NULL, ordered = TRUE)
+  compact <- causalBKMR:::.gbkmr_pairs(selected, NULL, ordered = FALSE)
+
+  expect_equal(nrow(directed), 6L)
+  expect_false(any(directed$focal == directed$conditional))
+  expect_true(all(c("M1 | M2", "M2 | M1") %in%
+                    paste(directed$focal, directed$conditional, sep = " | ")))
+  expect_equal(nrow(compact), 3L)
+})
+
 test_that("causal plotting commands use full longitudinal interventions", {
   skip_if_not_installed("bkmr")
   skip_if_not_installed("ggplot2")
@@ -70,7 +82,7 @@ test_that("causal plotting commands use full longitudinal interventions", {
   bivariate <- gbkmr_causal_bivariate(
     fit,
     exposures = c(focal, conditional),
-    pairs = matrix(c(focal, conditional), nrow = 1),
+    layout = "matrix",
     quantiles = c(0.25, 0.75),
     K = 1,
     seed = 12
@@ -99,6 +111,9 @@ test_that("causal plotting commands use full longitudinal interventions", {
   }, logical(1))))
   expect_equal(sort(unique(bivariate$interventions$conditional_quantile)),
                c(0.25, 0.50, 0.75))
+  expect_equal(nrow(unique(bivariate$summary[c("focal", "conditional")])), 2L)
+  expect_s3_class(bivariate$plot$facet, "FacetGrid")
+  expect_identical(bivariate$settings$layout, "matrix")
 
   iqr_low_background <- iqr$interventions$background_quantile == 0.25
   expect_true(all(vapply(nonfocal, function(name) {
