@@ -125,6 +125,7 @@ bivariate <- lapply(seq_len(T_points) - 1L, function(time_index) {
     conditional_quantiles = c(0.25, 0.50, 0.75),
     reference = 0.25,
     background = 0.50,
+    conditional_reference = 0.50,
     K = plot_K,
     sel = plot_sel,
     seed = 2026

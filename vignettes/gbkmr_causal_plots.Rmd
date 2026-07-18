@@ -165,16 +165,20 @@ baseline_visit <- gbkmr_causal_univariate(
 
 `gbkmr_causal_bivariate()` varies a focal exposure while fixing a second
 exposure at low, middle, and high levels. The remaining exposures are fixed at
-the median. For every conditional level `c`, the curve is contrasted with the
-focal exposure's 25th percentile under that same `c`:
+the median. Every curve uses the same reference intervention: the focal
+exposure is at its 25th percentile and the conditional exposure is at its
+median:
 
 \[
 E\{Y(A_j=x, A_k=c, A_{-(j,k)}=0.50)\}
-- E\{Y(A_j=q_{0.25,j}, A_k=c, A_{-(j,k)}=0.50)\}.
+- E\{Y(A_j=q_{0.25,j}, A_k=q_{0.50,k}, A_{-(j,k)}=0.50)\}.
 \]
 
 The direction of each pair matters: the focal exposure is on the horizontal axis,
-and the conditional exposure defines the colored levels.
+and the conditional exposure defines the colored levels. Using a common
+reference allows the three curves to remain vertically separated when the
+conditional exposure changes the counterfactual outcome. Set `reference` and
+`conditional_reference` to customize the common intervention.
 
 The matrix layout places focal exposures in columns and conditioning exposures
 in rows. Both pair directions are shown, the diagonal is blank, and colors
@@ -197,6 +201,7 @@ bivariate <- lapply(time_indices, function(time_index) {
     conditional_quantiles = c(0.25, 0.50, 0.75),
     reference = 0.25,
     background = 0.50,
+    conditional_reference = 0.50,
     K = 5,
     sel = plot_sel,
     seed = 2026

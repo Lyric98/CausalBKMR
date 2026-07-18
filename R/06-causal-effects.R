@@ -547,8 +547,8 @@ gbkmr_causal_univariate <- function(
 #'
 #' Varies a focal exposure while fixing a second exposure at requested
 #' conditional quantiles. All remaining exposures are fixed at the background
-#' quantile. Each curve is contrasted with the focal reference value under the
-#' same level of the conditional exposure.
+#' quantile. Every curve is contrasted with one common intervention that fixes
+#' the focal and conditional exposures at their respective reference quantiles.
 #'
 #' @inheritParams gbkmr_causal_univariate
 #' @param pairs Exposure pairs. The first column or element is the focal
@@ -558,6 +558,9 @@ gbkmr_causal_univariate <- function(
 #' @param layout Plot layout. `matrix` uses focal exposures as columns and
 #'   conditional exposures as rows; `wrap` uses one panel per pair.
 #' @param conditional_quantiles Quantiles for the conditional exposure.
+#' @param reference Focal exposure quantile in the common reference intervention.
+#' @param conditional_reference Conditional exposure quantile in the common
+#'   reference intervention.
 #'
 #' @return A `gbkmr_causal_effects` object; see
 #'   [gbkmr_causal_overall()].
@@ -576,7 +579,8 @@ gbkmr_causal_bivariate <- function(
     sel = NULL,
     seed = 1L,
     credible_level = 0.95,
-    verbose = FALSE) {
+    verbose = FALSE,
+    conditional_reference = 0.50) {
   raw <- .gbkmr_get_raw(object)
   selected <- .gbkmr_select_exposures(raw, exposures, time_points)
   layout <- match.arg(layout)
@@ -589,8 +593,15 @@ gbkmr_causal_bivariate <- function(
   )
   reference <- .gbkmr_validate_probabilities(reference, "reference")
   background <- .gbkmr_validate_probabilities(background, "background")
-  if (length(reference) != 1L || length(background) != 1L) {
-    stop("reference and background must each be a single probability.")
+  conditional_reference <- .gbkmr_validate_probabilities(
+    conditional_reference, "conditional_reference"
+  )
+  if (length(reference) != 1L || length(background) != 1L ||
+      length(conditional_reference) != 1L) {
+    stop(paste(
+      "reference, background, and conditional_reference must each be",
+      "a single probability."
+    ))
   }
   credible_level <- .gbkmr_validate_level(credible_level)
   if (nrow(pair_table) > 20L) {
@@ -600,6 +611,7 @@ gbkmr_causal_bivariate <- function(
   all_names <- raw$meta$exposure_names
   background_values <- .gbkmr_exposure_quantiles(raw, background)[1L, ]
   evaluated_quantiles <- unique(c(reference, quantiles))
+  evaluated_conditions <- unique(c(conditional_reference, conditional_quantiles))
   summary_tables <- draw_tables <- intervention_tables <- vector("list", nrow(pair_table))
 
   for (pair_index in seq_len(nrow(pair_table))) {
@@ -607,7 +619,7 @@ gbkmr_causal_bivariate <- function(
     conditional <- pair_table$conditional[pair_index]
     specification <- expand.grid(
       focal_quantile = evaluated_quantiles,
-      conditional_quantile = conditional_quantiles,
+      conditional_quantile = evaluated_conditions,
       KEEP.OUT.ATTRS = FALSE,
       stringsAsFactors = FALSE
     )
@@ -625,14 +637,16 @@ gbkmr_causal_bivariate <- function(
     rownames(interventions) <- paste0("bivariate_", pair_index, "_", seq_len(nrow(specification)))
     evaluated <- .gbkmr_gcompute(object, interventions, K, sel, seed, verbose)
     pair_label <- paste0(focal, " | ", conditional)
+    reference_index <- which(
+      specification$focal_quantile == reference &
+        specification$conditional_quantile == conditional_reference
+    )[1L]
+    reference_focal_value <- interventions[reference_index, focal]
+    reference_conditional_value <- interventions[reference_index, conditional]
 
     pair_summaries <- pair_draws <- list()
     output_index <- 0L
     for (condition in conditional_quantiles) {
-      reference_index <- which(
-        specification$focal_quantile == reference &
-          specification$conditional_quantile == condition
-      )[1L]
       for (q in quantiles) {
         output_index <- output_index + 1L
         regime_index <- which(
@@ -654,6 +668,9 @@ gbkmr_causal_bivariate <- function(
           lower = interval[["lower"]],
           upper = interval[["upper"]],
           reference_quantile = reference,
+          conditional_reference_quantile = conditional_reference,
+          reference_focal_value = reference_focal_value,
+          reference_conditional_value = reference_conditional_value,
           background_quantile = background
         )
         pair_draws[[output_index]] <- data.frame(
@@ -668,6 +685,10 @@ gbkmr_causal_bivariate <- function(
           conditional_value = interventions[regime_index, conditional],
           counterfactual_mean = evaluated$draws[, regime_index],
           reference_mean = evaluated$draws[, reference_index],
+          reference_quantile = reference,
+          conditional_reference_quantile = conditional_reference,
+          reference_focal_value = reference_focal_value,
+          reference_conditional_value = reference_conditional_value,
           effect = effect
         )
       }
@@ -677,6 +698,8 @@ gbkmr_causal_bivariate <- function(
     intervention_tables[[pair_index]] <- data.frame(
       pair = pair_label,
       regime = rownames(interventions),
+      is_reference = specification$focal_quantile == reference &
+        specification$conditional_quantile == conditional_reference,
       specification,
       as.data.frame(interventions, check.names = FALSE),
       check.names = FALSE
@@ -735,7 +758,7 @@ gbkmr_causal_bivariate <- function(
   plot <- plot +
     ggplot2::labs(
       x = "Focal exposure value",
-      y = paste0("Causal effect vs focal q = ", format(reference)),
+      y = "Causal effect vs common reference",
       color = "Conditional quantile",
       fill = "Conditional quantile",
       title = "Conditional bivariate causal dose-response",
@@ -757,11 +780,12 @@ gbkmr_causal_bivariate <- function(
 
   .gbkmr_new_causal_result(
     "bivariate", summary, draws, intervention_table, plot,
-    paste0("Within each conditional exposure level, E[Y(A_j=x)] - E[Y(A_j=q",
-           reference, ")], with remaining exposures at q", background,
-           " and time-dependent confounders generated sequentially."),
+    paste0("E[Y(A_j=x, A_k=c, A_-(j,k)=q", background,
+           ")] - E[Y(A_j=q", reference, ", A_k=q",
+           conditional_reference, ", A_-(j,k)=q", background,
+           ")], with time-dependent confounders generated sequentially."),
     list(pairs = pair_table, layout = layout, reference = reference,
-         background = background,
+         background = background, conditional_reference = conditional_reference,
          quantiles = quantiles, conditional_quantiles = conditional_quantiles,
          K = .gbkmr_or(K, raw$meta$K), sel = .gbkmr_or(sel, raw$meta$sel),
          credible_level = credible_level, seed = seed)

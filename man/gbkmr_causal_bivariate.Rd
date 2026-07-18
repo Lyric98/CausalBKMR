@@ -18,7 +18,8 @@ gbkmr_causal_bivariate(
   sel = NULL,
   seed = 1L,
   credible_level = 0.95,
-  verbose = FALSE
+  verbose = FALSE,
+  conditional_reference = 0.5
 )
 }
 \arguments{
@@ -40,7 +41,10 @@ conditional exposures as rows; \code{wrap} uses one panel per pair.}
 
 \item{conditional_quantiles}{Quantiles for the conditional exposure.}
 
-\item{reference}{Reference quantile for every mixture component.}
+\item{reference}{Focal exposure quantile in the common reference intervention.}
+
+\item{conditional_reference}{Conditional exposure quantile in the common
+reference intervention.}
 
 \item{background}{Quantile at which non-focal exposures are fixed.}
 
@@ -63,6 +67,6 @@ A \code{gbkmr_causal_effects} object; see
 \description{
 Varies a focal exposure while fixing a second exposure at requested
 conditional quantiles. All remaining exposures are fixed at the background
-quantile. Each curve is contrasted with the focal reference value under the
-same level of the conditional exposure.
+quantile. Every curve is contrasted with one common intervention that fixes
+the focal and conditional exposures at their respective reference quantiles.
 }

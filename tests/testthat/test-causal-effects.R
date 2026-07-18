@@ -111,9 +111,51 @@ test_that("causal plotting commands use full longitudinal interventions", {
   }, logical(1))))
   expect_equal(sort(unique(bivariate$interventions$conditional_quantile)),
                c(0.25, 0.50, 0.75))
+  expect_equal(sum(bivariate$interventions$is_reference), 2L)
   expect_equal(nrow(unique(bivariate$summary[c("focal", "conditional")])), 2L)
   expect_s3_class(bivariate$plot$facet, "FacetGrid")
   expect_identical(bivariate$settings$layout, "matrix")
+  expect_identical(bivariate$settings$conditional_reference, 0.50)
+
+  common_reference <- bivariate$draws[
+    bivariate$draws$focal_quantile == 0.25 &
+      bivariate$draws$conditional_quantile == 0.50,
+  ]
+  expect_equal(common_reference$effect, rep(0, nrow(common_reference)))
+  expect_equal(
+    bivariate$draws$effect,
+    bivariate$draws$counterfactual_mean - bivariate$draws$reference_mean
+  )
+  reference_counts <- aggregate(
+    reference_mean ~ pair + .draw, bivariate$draws,
+    function(x) length(unique(x))
+  )
+  expect_true(all(reference_counts$reference_mean == 1L))
+
+  custom_bivariate <- gbkmr_causal_bivariate(
+    fit,
+    pairs = data.frame(focal = focal, conditional = conditional),
+    layout = "wrap",
+    quantiles = 0.25,
+    conditional_quantiles = 0.75,
+    reference = 0.20,
+    background = 0.40,
+    conditional_reference = 0.60,
+    K = 1,
+    seed = 12
+  )
+  custom_reference <- custom_bivariate$interventions[
+    custom_bivariate$interventions$is_reference,
+  ]
+  expect_equal(nrow(custom_reference), 1L)
+  expect_identical(custom_bivariate$settings$reference, 0.20)
+  expect_identical(custom_bivariate$settings$background, 0.40)
+  expect_identical(custom_bivariate$settings$conditional_reference, 0.60)
+  expect_equal(custom_reference[[focal]], q_value(focal, 0.20))
+  expect_equal(custom_reference[[conditional]], q_value(conditional, 0.60))
+  expect_true(all(vapply(remaining, function(name) {
+    custom_reference[[name]] == q_value(name, 0.40)
+  }, logical(1))))
 
   iqr_low_background <- iqr$interventions$background_quantile == 0.25
   expect_true(all(vapply(nonfocal, function(name) {
