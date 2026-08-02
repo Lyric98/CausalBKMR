@@ -45,7 +45,7 @@ metals at three visits, one continuous time-dependent confounder measured after
 the first and second visits, and two baseline covariates. They illustrate the
 plotting interface and are not SHS results. The complete data-generation and
 figure script is available in
-[`tools/generate-causal-plot-examples.R`](https://github.com/Lyric98/CausalBKMR/blob/master/tools/generate-causal-plot-examples.R).
+[`tools/generate-causal-plot-examples.R`](https://github.com/Lyric-o/CausalBKMR/blob/master/tools/generate-causal-plot-examples.R).
 
 The short MCMC and Monte Carlo settings below keep the example reproducible on
 a laptop. Substantive analyses should use longer chains, inspect diagnostics,

@@ -28,7 +28,7 @@ $$
 $$
 
 A full description of the methodology is available in the
-[Methodology Overview](https://lyric98.github.io/CausalBKMR/articles/gbkmr_method_overview.html).
+[Methodology Overview](https://lyric-o.github.io/CausalBKMR/articles/gbkmr_method_overview.html).
 
 ## What this package provides
 
@@ -65,7 +65,7 @@ Install `causalBKMR` from GitHub:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("Lyric98/CausalBKMR")
+devtools::install_github("Lyric-o/CausalBKMR")
 
 library(causalBKMR)
 ```
@@ -107,21 +107,21 @@ iqr_effects <- gbkmr_causal_iqr(results)
 iqr_effects$plot
 ```
 
-See the [Quick Start guide](https://lyric98.github.io/CausalBKMR/articles/gbkmr_quickstart.html)
+See the [Quick Start guide](https://lyric-o.github.io/CausalBKMR/articles/gbkmr_quickstart.html)
 for a complete walkthrough.
 
 ## Documentation
 
 | Topic | Link |
 |-------|------|
-| Methodology overview | [Method](https://lyric98.github.io/CausalBKMR/articles/gbkmr_method_overview.html) |
-| Quick start | [Quick Start](https://lyric98.github.io/CausalBKMR/articles/gbkmr_quickstart.html) |
-| Custom contrasts | [Example 1](https://lyric98.github.io/CausalBKMR/articles/gbkmr_example_contrasts.html) |
-| Binary outcome | [Example 2](https://lyric98.github.io/CausalBKMR/articles/gbkmr_example_binary.html) |
-| Large-sample fastBKMR | [Example 3](https://lyric98.github.io/CausalBKMR/articles/gbkmr_example_fastbkmr.html) |
-| Diagnostics & troubleshooting | [Diagnostics](https://lyric98.github.io/CausalBKMR/articles/gbkmr_diagnostics.html) |
-| Causal-effect plots | [Causal Plots](https://lyric98.github.io/CausalBKMR/articles/gbkmr_causal_plots.html) |
-| Function reference | [Functions](https://lyric98.github.io/CausalBKMR/reference/) |
+| Methodology overview | [Method](https://lyric-o.github.io/CausalBKMR/articles/gbkmr_method_overview.html) |
+| Quick start | [Quick Start](https://lyric-o.github.io/CausalBKMR/articles/gbkmr_quickstart.html) |
+| Custom contrasts | [Example 1](https://lyric-o.github.io/CausalBKMR/articles/gbkmr_example_contrasts.html) |
+| Binary outcome | [Example 2](https://lyric-o.github.io/CausalBKMR/articles/gbkmr_example_binary.html) |
+| Large-sample fastBKMR | [Example 3](https://lyric-o.github.io/CausalBKMR/articles/gbkmr_example_fastbkmr.html) |
+| Diagnostics & troubleshooting | [Diagnostics](https://lyric-o.github.io/CausalBKMR/articles/gbkmr_diagnostics.html) |
+| Causal-effect plots | [Causal Plots](https://lyric-o.github.io/CausalBKMR/articles/gbkmr_causal_plots.html) |
+| Function reference | [Functions](https://lyric-o.github.io/CausalBKMR/reference/) |
 
 ## Citation
 

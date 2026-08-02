@@ -1,4 +1,4 @@
-url: https://Lyric98.github.io/CausalBKMR/
+url: https://Lyric-o.github.io/CausalBKMR/
 
 authors:
   Yanran Li: ~
@@ -40,7 +40,7 @@ navbar:
       href: reference/index.html
     - icon: fa-github fa-lg
       text: GitHub
-      href: https://github.com/Lyric98/CausalBKMR
+      href: https://github.com/Lyric-o/CausalBKMR
 
 reference:
   - title: "Data Preparation"
